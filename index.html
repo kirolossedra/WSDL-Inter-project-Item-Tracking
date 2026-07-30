@@ -280,7 +280,7 @@
 
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: .85rem;
       margin-bottom: 1rem;
     }
@@ -332,7 +332,7 @@
     .panel-header p { margin: .22rem 0 0; color: var(--ink-500); font-size: .8rem; }
     .toolbar {
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(130px, .28fr));
+      grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(130px, .28fr));
       gap: .65rem;
       padding: .85rem 1rem;
       border-bottom: 1px solid var(--border);
@@ -668,10 +668,14 @@
     .badge-healthy { color: var(--green-700); background: var(--green-100); }
     .badge-unhealthy { color: var(--red-700); background: var(--red-100); }
     .badge-unmarked { color: var(--amber-700); background: var(--amber-100); }
+    .badge-setup { color: var(--red-700); background: var(--red-100); border: 1px solid #ffcaca; }
     .health-summary { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
     .health-count-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .75rem; padding: .8rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
     .health-count-grid .field + .field { margin-top: 0; }
     .health-count-summary { grid-column: span 2; padding: .65rem .7rem; border-radius: 10px; color: var(--ink-700); background: #fff; font-size: .78rem; line-height: 1.5; }
+    .health-setup-notice { display: flex; align-items: flex-start; gap: .7rem; padding: .82rem .9rem; border: 1px solid #f1c5c5; border-radius: 12px; color: var(--red-700); background: var(--red-100); font-size: .8rem; line-height: 1.55; }
+    .health-setup-notice strong { display: block; margin-bottom: .2rem; }
+    .health-setup-action { margin-top: .42rem; }
     .experiments-shell { display: grid; gap: 1rem; }
     .experiment-note { padding: .85rem 1rem; border: 1px solid var(--lab-200); border-radius: 13px; color: var(--ink-800); background: var(--lab-100); font-size: .82rem; line-height: 1.55; }
     .experiment-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
@@ -829,6 +833,7 @@
           <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-list"></use></svg></div><div><span>Item records</span><strong id="summaryItems">0</strong></div></article>
           <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-box"></use></svg></div><div><span>Total quantity</span><strong id="summaryQuantity">0</strong></div></article>
           <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-hash"></use></svg></div><div><span>Healthy units</span><strong id="summaryHealthy">0</strong></div></article>
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-clock"></use></svg></div><div><span>Health setup required</span><strong id="summaryHealthSetup">0</strong></div></article>
         </section>
 
         <section class="workspace">
@@ -838,6 +843,7 @@
               <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search items, tags, comments, locations, or regex" title="Use spaces for multiple terms. Regular expressions are supported, for example aruba.*534 or /access\s+point/i." /><small class="search-regex-help">Spaces match multiple terms. Regex is supported, for example <code>aruba.*534</code> or <code>/access\s+point/i</code>.</small></div>
               <select id="projectFilter" aria-label="Filter by project"><option value="">All projects</option><option>Apple</option><option>AQS</option><option>Rogers</option></select>
               <select id="typeFilter" aria-label="Filter by item type"><option value="">All item types</option><option>Device</option><option>Component</option></select>
+              <select id="healthFilter" aria-label="Filter by health setup"><option value="">All health states</option><option value="setup">Health setup required</option><option value="configured">Health configured</option></select>
             </div>
             <div id="inventoryContent" class="table-wrap"></div>
           </div>
@@ -877,7 +883,9 @@
           <div class="field span-2"><label for="itemTags">Search tags <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><input id="itemTags" maxlength="1500" placeholder="router, access point, Aruba, Wi-Fi 6, AP-534" /><small>Separate tags with commas. Spaces inside a tag are preserved, duplicates are removed, and tags are searchable with normal words or regular expressions.</small></div>
           <div class="field"><label for="itemQuantity">Quantity</label><input id="itemQuantity" type="number" min="1" max="10000" step="1" value="1" required /><small>Serial registrations cannot exceed this number.</small></div>
           <div class="field"><label>Photo</label><div class="photo-input-wrap"><div id="itemPhotoPreview" class="photo-preview"><span>No photo selected</span></div><div><input id="itemPhoto" type="file" accept="image/*" /><small>Images are compressed and stored as Base64. Maximum target size: 450 KB.</small><button id="removePhotoButton" class="button button-ghost button-small hidden" type="button">Remove photo</button></div></div></div>
-          <div class="field span-2"><label for="itemHealthMode">Unit health tracking</label><select id="itemHealthMode"><option value="serial">Mark health on each serial number</option><option value="count">Mark health by unit counts</option></select><div class="location-mode-help">Serial mode lets each registered serial be labeled Healthy, Not functional, or Unmarked. Count mode stores the total number of healthy and non-functional units without assigning the label to particular serials.</div></div>
+          <div id="itemHealthSetupNotice" class="field span-2 hidden"><div class="health-setup-notice"><svg class="icon" aria-hidden="true"><use href="#icon-clock"></use></svg><div><strong>This existing item has no health tracking assigned.</strong>Select either serial-based or count-based tracking below. Until it is saved, this item contributes zero healthy units and cannot make an experiment feasible.</div></div></div>
+          <div class="field span-2"><label for="itemHealthMode">Unit health tracking</label><select id="itemHealthMode" required><option value="">Select health tracking method</option><option value="serial">Mark health on each serial number</option><option value="count">Mark health by unit counts</option></select><div class="location-mode-help">Serial mode lets each registered serial be labeled Healthy, Not functional, or Unmarked. Count mode stores the total number of healthy and non-functional units without assigning the label to particular serials.</div></div>
+          <div id="itemSerialHealthSetupFields" class="field span-2 hidden"><label for="itemExistingSerialHealth">Existing serial labels</label><select id="itemExistingSerialHealth"><option value="keep">Keep current labels; unlabeled serials remain unmarked</option><option value="healthy">Mark every registered serial as Healthy</option><option value="nonfunctional">Mark every registered serial as Not functional</option><option value="unknown">Mark every registered serial as Unmarked</option></select><small>This bulk choice is applied to serials that already exist when you save. You can still edit each serial individually afterward.</small></div>
           <div id="itemCountHealthFields" class="field span-2 hidden"><label>Count-based health totals</label><div class="health-count-grid"><div class="field"><label for="itemHealthyCount">Healthy units</label><input id="itemHealthyCount" type="number" min="0" max="10000" step="1" value="1" /></div><div class="field"><label for="itemNonFunctionalCount">Not functional units</label><input id="itemNonFunctionalCount" type="number" min="0" max="10000" step="1" value="0" /></div><div id="itemHealthCountSummary" class="health-count-summary"></div></div></div>
           <div class="field span-2"><label for="itemLocationMode">Location tracking</label><select id="itemLocationMode"><option value="serial">Different location for each serial number</option><option value="combined">One combined location for the entire item</option></select><div class="location-mode-help">Use a combined location when all physical units are stored together. New serials inherit it automatically, and changing the item location updates the active serial records together.</div></div>
           <div id="itemCombinedLocationField" class="field span-2 hidden"><label>Combined item location</label><div id="itemCombinedLocationBuilder" class="location-builder"></div><small>The exact-location text inside the selected sub-location remains optional.</small></div>
@@ -1093,11 +1101,13 @@
       searchInput: $("#searchInput"),
       projectFilter: $("#projectFilter"),
       typeFilter: $("#typeFilter"),
+      healthFilter: $("#healthFilter"),
       inventoryContent: $("#inventoryContent"),
       resultCount: $("#resultCount"),
       summaryItems: $("#summaryItems"),
       summaryQuantity: $("#summaryQuantity"),
       summaryHealthy: $("#summaryHealthy"),
+      summaryHealthSetup: $("#summaryHealthSetup"),
       summaryExperiments: $("#summaryExperiments"),
       summaryFeasible: $("#summaryFeasible"),
       summaryInfeasible: $("#summaryInfeasible"),
@@ -1114,6 +1124,9 @@
       itemTags: $("#itemTags"),
       itemQuantity: $("#itemQuantity"),
       itemHealthMode: $("#itemHealthMode"),
+      itemHealthSetupNotice: $("#itemHealthSetupNotice"),
+      itemSerialHealthSetupFields: $("#itemSerialHealthSetupFields"),
+      itemExistingSerialHealth: $("#itemExistingSerialHealth"),
       itemCountHealthFields: $("#itemCountHealthFields"),
       itemHealthyCount: $("#itemHealthyCount"),
       itemNonFunctionalCount: $("#itemNonFunctionalCount"),
@@ -1305,6 +1318,7 @@
         item.itemType,
         item.comment,
         itemHealthMode(item),
+        itemHealthConfigured(item) ? "health configured" : "health setup required unconfigured",
         `${itemHealthStats(item).healthy} healthy`,
         `${itemHealthStats(item).nonfunctional} not functional`,
         ...normalizeTags(item.tags),
@@ -1325,8 +1339,14 @@
       return item?.locationMode === "combined" && Boolean(item?.combinedLocation?.site);
     }
 
+    function itemHealthConfigured(item) {
+      return item?.healthMode === "serial" || item?.healthMode === "count";
+    }
+
     function itemHealthMode(item) {
-      return item?.healthMode === "count" ? "count" : "serial";
+      if (item?.healthMode === "count") return "count";
+      if (item?.healthMode === "serial") return "serial";
+      return "unconfigured";
     }
 
     function normalizeHealthStatus(value) {
@@ -1346,20 +1366,27 @@
 
     function itemHealthStats(item) {
       const quantity = Math.max(0, Number(item?.quantity || 0));
-      if (itemHealthMode(item) === "count") {
+      const mode = itemHealthMode(item);
+      if (mode === "unconfigured") {
+        return { mode, configured: false, healthy: 0, nonfunctional: 0, unknown: quantity, quantity, loaded: true };
+      }
+      if (mode === "count") {
         const healthy = Math.max(0, Math.min(quantity, Number(item?.healthyCount || 0)));
         const nonfunctional = Math.max(0, Math.min(quantity - healthy, Number(item?.nonFunctionalCount || 0)));
-        return { mode: "count", healthy, nonfunctional, unknown: Math.max(0, quantity - healthy - nonfunctional), quantity, loaded: true };
+        return { mode, configured: true, healthy, nonfunctional, unknown: Math.max(0, quantity - healthy - nonfunctional), quantity, loaded: true };
       }
       const serials = Array.isArray(item?.serials) ? item.serials : state.serialsByItem.get(item?.id);
-      if (!serials) return { mode: "serial", healthy: 0, nonfunctional: 0, unknown: quantity, quantity, loaded: false };
+      if (!serials) return { mode, configured: true, healthy: 0, nonfunctional: 0, unknown: quantity, quantity, loaded: false };
       const healthy = serials.filter((serial) => normalizeHealthStatus(serial.healthStatus) === "healthy").length;
       const nonfunctional = serials.filter((serial) => normalizeHealthStatus(serial.healthStatus) === "nonfunctional").length;
-      return { mode: "serial", healthy, nonfunctional, unknown: Math.max(0, quantity - healthy - nonfunctional), quantity, loaded: true };
+      return { mode, configured: true, healthy, nonfunctional, unknown: Math.max(0, quantity - healthy - nonfunctional), quantity, loaded: true };
     }
 
     function itemHealthSummaryHtml(item, compact = false) {
       const stats = itemHealthStats(item);
+      if (!stats.configured) {
+        return `<div class="health-summary"><span class="badge badge-setup">Setup required</span>${compact ? `<button class="button button-secondary button-small configure-health health-setup-action" type="button" data-item-id="${item.id}">Assign health tracking</button>` : `<span class="location-sub">No health method has been saved for this existing item.</span>`}</div>`;
+      }
       const modeText = stats.mode === "count" ? "count based" : "serial based";
       if (compact) return `<div class="health-summary"><span class="badge badge-healthy">${stats.healthy} healthy</span>${stats.nonfunctional ? `<span class="badge badge-unhealthy">${stats.nonfunctional} not functional</span>` : ""}${stats.unknown ? `<span class="badge badge-unmarked">${stats.unknown} unmarked</span>` : ""}</div>`;
       return `<div class="health-summary"><span class="badge badge-healthy">${stats.healthy} healthy</span><span class="badge badge-unhealthy">${stats.nonfunctional} not functional</span><span class="badge badge-unmarked">${stats.unknown} unmarked</span><span class="location-sub">${modeText}</span></div>`;
@@ -1495,8 +1522,9 @@
       return changed;
     }
 
-    async function saveItemHealthSettings(itemId, previousItem, nextItem, healthMode, healthyCount, nonFunctionalCount) {
-      const mode = healthMode === "count" ? "count" : "serial";
+    async function saveItemHealthSettings(itemId, previousItem, nextItem, healthMode, healthyCount, nonFunctionalCount, existingSerialAction = "keep") {
+      if (healthMode !== "serial" && healthMode !== "count") throw new Error("Select a health tracking method.");
+      const mode = healthMode;
       const quantity = Math.max(1, Number(nextItem.quantity || 1));
       let healthy = null;
       let nonfunctional = null;
@@ -1508,11 +1536,14 @@
         if (healthy + nonfunctional !== quantity) throw new Error(`Healthy and not-functional counts must total the item quantity (${quantity}).`);
       }
       const previousMode = itemHealthMode(previousItem);
+      const wasConfigured = itemHealthConfigured(previousItem);
       const changed = !previousItem || previousMode !== mode || Number(previousItem?.healthyCount || 0) !== Number(healthy || 0) || Number(previousItem?.nonFunctionalCount || 0) !== Number(nonfunctional || 0);
       const writes = {
         [`${TRACKER_ROOT}/equipment/${itemId}/healthMode`]: mode,
         [`${TRACKER_ROOT}/equipment/${itemId}/healthyCount`]: mode === "count" ? healthy : null,
         [`${TRACKER_ROOT}/equipment/${itemId}/nonFunctionalCount`]: mode === "count" ? nonfunctional : null,
+        [`${TRACKER_ROOT}/equipment/${itemId}/healthConfiguredAt`]: serverTimestamp(),
+        [`${TRACKER_ROOT}/equipment/${itemId}/healthConfiguredBy`]: firebaseUserStamp(),
         [`${TRACKER_ROOT}/equipment/${itemId}/updatedAt`]: serverTimestamp(),
         [`${TRACKER_ROOT}/equipment/${itemId}/updatedBy`]: firebaseUserStamp(),
       };
@@ -1525,7 +1556,7 @@
           itemType: nextItem.itemType,
           serialId: "",
           serialNumber: "",
-          actionType: "Health tracking changed",
+          actionType: wasConfigured ? "Health tracking changed" : "Health tracking assigned",
           occurredAt: Date.now(),
           loggedAt: serverTimestamp(),
           actorUid: state.user.uid,
@@ -1540,6 +1571,37 @@
           },
         };
       }
+
+      if (mode === "serial" && ["healthy", "nonfunctional", "unknown"].includes(existingSerialAction)) {
+        const snapshot = await get(ref(htmlDb, `${TRACKER_ROOT}/serials/${itemId}`));
+        const serialMap = snapshot.val() || {};
+        const status = normalizeHealthStatus(existingSerialAction);
+        let updatedSerialCount = 0;
+        Object.keys(serialMap).forEach((serialId) => {
+          writes[`${TRACKER_ROOT}/serials/${itemId}/${serialId}/healthStatus`] = status;
+          writes[`${TRACKER_ROOT}/serials/${itemId}/${serialId}/updatedAt`] = serverTimestamp();
+          writes[`${TRACKER_ROOT}/serials/${itemId}/${serialId}/updatedBy`] = firebaseUserStamp();
+          updatedSerialCount += 1;
+        });
+        if (updatedSerialCount > 0) {
+          const logId = push(ref(htmlDb, `${TRACKER_ROOT}/activityLogs`)).key;
+          writes[`${TRACKER_ROOT}/activityLogs/${logId}`] = {
+            itemId,
+            itemName: nextItem.name,
+            projectName: nextItem.projectName,
+            itemType: nextItem.itemType,
+            serialId: "",
+            serialNumber: "",
+            actionType: "Existing serial health initialized",
+            occurredAt: Date.now(),
+            loggedAt: serverTimestamp(),
+            actorUid: state.user.uid,
+            actorEmail: state.user.email || "",
+            details: { status, updatedSerialCount },
+          };
+        }
+      }
+
       await update(ref(htmlDb), writes);
       return changed;
     }
@@ -1590,10 +1652,15 @@
     }
 
     function refreshItemHealthMode(resetCounts = false) {
-      const countMode = elements.itemHealthMode.value === "count";
+      const selectedMode = elements.itemHealthMode.value;
+      const countMode = selectedMode === "count";
+      const serialMode = selectedMode === "serial";
+      const existingSerialCount = state.itemBeingEdited ? (state.serialsByItem.get(state.itemBeingEdited.id)?.length ?? Number(state.itemBeingEdited.serialCount || 0)) : 0;
+      const hasExistingSerials = existingSerialCount > 0;
       elements.itemCountHealthFields.classList.toggle("hidden", !countMode);
+      elements.itemSerialHealthSetupFields.classList.toggle("hidden", !(serialMode && hasExistingSerials));
       if (countMode && resetCounts) {
-        elements.itemHealthyCount.value = Math.max(0, Number(elements.itemQuantity.value || 1));
+        elements.itemHealthyCount.value = 0;
         elements.itemNonFunctionalCount.value = 0;
       }
       refreshItemHealthCountSummary();
@@ -1751,9 +1818,11 @@
       const matcher = buildSearchMatcher(elements.searchInput.value);
       const project = elements.projectFilter.value;
       const type = elements.typeFilter.value;
+      const health = elements.healthFilter.value;
       return state.equipment.filter((item) => {
         const matchesSearch = matcher(itemSearchText(item));
-        return matchesSearch && (!project || item.projectName === project) && (!type || item.itemType === type);
+        const matchesHealth = !health || (health === "setup" ? !itemHealthConfigured(item) : itemHealthConfigured(item));
+        return matchesSearch && matchesHealth && (!project || item.projectName === project) && (!type || item.itemType === type);
       });
     }
 
@@ -1761,6 +1830,7 @@
       elements.summaryItems.textContent = state.equipment.length.toLocaleString();
       elements.summaryQuantity.textContent = state.equipment.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString();
       elements.summaryHealthy.textContent = state.equipment.reduce((sum, item) => sum + itemHealthStats(item).healthy, 0).toLocaleString();
+      elements.summaryHealthSetup.textContent = state.equipment.filter((item) => !itemHealthConfigured(item)).length.toLocaleString();
     }
 
     function emptyInventoryHtml(filtered = false) {
@@ -1837,19 +1907,20 @@
               <div class="meta-box"><span>Type</span><strong>${escapeHtml(item.itemType)}</strong></div>
               <div class="meta-box"><span>Quantity</span><strong>${Number(item.quantity || 0).toLocaleString()}</strong></div>
               <div class="meta-box"><span>Registered</span><strong>${Number(item.serialCount || 0).toLocaleString()}</strong></div>
-              <div class="meta-box"><span>Health tracking</span><strong>${itemHealthMode(item) === "count" ? "By unit counts" : "By serial number"}</strong></div>
-              <div class="meta-box"><span>Health totals</span><strong>${itemHealthStats(item).healthy} healthy · ${itemHealthStats(item).nonfunctional} not functional · ${itemHealthStats(item).unknown} unmarked</strong></div>
+              <div class="meta-box"><span>Health tracking</span><strong>${itemHealthMode(item) === "count" ? "By unit counts" : itemHealthMode(item) === "serial" ? "By serial number" : "Setup required"}</strong></div>
+              <div class="meta-box"><span>Health totals</span><strong>${itemHealthConfigured(item) ? `${itemHealthStats(item).healthy} healthy · ${itemHealthStats(item).nonfunctional} not functional · ${itemHealthStats(item).unknown} unmarked` : "0 healthy · tracking not assigned"}</strong></div>
               <div class="meta-box"><span>Location tracking</span><strong>${combined ? "Combined item location" : "Per serial number"}</strong></div>
               <div class="meta-box"><span>Item location</span><strong>${escapeHtml(combined ? formatLocation(item.combinedLocation) : "Stored on each serial record")}</strong></div>
             </div>
             <div class="detail-actions">
+              ${itemHealthConfigured(item) ? "" : `<button class="button button-primary button-small configure-health" type="button" data-item-id="${item.id}">${icon("clock")} Assign health tracking</button>`}
               <button class="button button-secondary button-small edit-item" type="button" data-item-id="${item.id}">${icon("edit")} Edit item</button>
               <button class="button button-danger button-small delete-item" type="button" data-item-id="${item.id}">${icon("trash")} Delete item</button>
             </div>
           </div>
         </div>
         <section class="serial-section">
-          <div class="serial-heading"><div><h3>Serial numbers</h3><span>${itemHealthMode(item) === "serial" ? "Health is labeled on each serial record. " : "Health is tracked by item counts; serial health labels are not used. "}${combined ? "All serials inherit the combined item location." : "Each serial has its own location and history."}</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
+          <div class="serial-heading"><div><h3>Serial numbers</h3><span>${itemHealthMode(item) === "serial" ? "Health is labeled on each serial record. " : itemHealthMode(item) === "count" ? "Health is tracked by item counts; serial health labels are not used. " : "Assign a health tracking method before these serials can contribute healthy units to experiments. "}${combined ? "All serials inherit the combined item location." : "Each serial has its own location and history."}</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
           ${renderSerialTable(item, serials)}
         </section>
         <section class="notes-section">
@@ -1888,10 +1959,10 @@
         return `<tr>
           <td><span class="serial-number">${escapeHtml(serial.serialNumber)}</span></td>
           <td>${locationSummaryHtml(shownLocation)}${combined ? `<span class="location-sub">Combined item location</span>` : ""}</td>
-          <td>${itemHealthMode(item) === "serial" ? healthBadgeHtml(serial.healthStatus) : `<span class="badge location-mode-badge">Count based</span>`}</td>
+          <td>${itemHealthMode(item) === "serial" ? healthBadgeHtml(serial.healthStatus) : itemHealthMode(item) === "count" ? `<span class="badge location-mode-badge">Count based</span>` : `<span class="badge badge-setup">Setup required</span>`}</td>
           <td>${loaned ? `<span class="badge badge-loaned">Lent to ${escapeHtml(serial.loan.memberName)}</span>` : `<span class="badge badge-available">Available</span>`}</td>
           <td><div class="serial-actions">
-            <button class="button button-ghost button-small view-logs" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("clock")} Logs</button>
+            <button class="button button-ghost button-small view-logs" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}"><svg class="icon" aria-hidden="true"><use href="#icon-clock"></use></svg> Logs</button>
             ${combined ? "" : `<button class="button button-secondary button-small move-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" ${loaned ? "disabled title=\"Return before moving\"" : ""}>${icon("move")} Move</button>`}
             <button class="button ${loaned ? "button-primary" : "button-secondary"} button-small ${loaned ? "return-serial" : "lend-serial"}" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("user")} ${loaned ? "Return" : "Lend"}</button>
             <button class="button button-ghost button-icon button-small rename-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Edit complete serial record" title="Edit serial number, location, and status">${icon("edit")}</button>
@@ -1915,6 +1986,7 @@
         const item = findItem(requirement.itemId);
         if (!item) return { ...requirement, item: null, healthy: 0, feasible: false, reason: "Item no longer exists" };
         const stats = itemHealthStats(item);
+        if (!stats.configured) return { ...requirement, item, healthy: 0, feasible: false, reason: "Health tracking has not been assigned to this item" };
         const feasible = stats.loaded && stats.healthy >= requirement.quantity;
         const basis = stats.mode === "count" ? "count-based health" : "serial health labels";
         const reason = !stats.loaded
@@ -1970,7 +2042,7 @@
     }
 
     function experimentItemOptions(selectedItemId = "") {
-      return `<option value="">Select equipment item</option>${state.equipment.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selectedItemId ? "selected" : ""}>${escapeHtml(item.name)} · ${escapeHtml(item.projectName)} · ${itemHealthStats(item).healthy} healthy</option>`).join("")}`;
+      return `<option value="">Select equipment item</option>${state.equipment.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selectedItemId ? "selected" : ""}>${escapeHtml(item.name)} · ${escapeHtml(item.projectName)} · ${itemHealthConfigured(item) ? `${itemHealthStats(item).healthy} healthy` : "health setup required"}</option>`).join("")}`;
     }
 
     function addExperimentRequirementRow(requirement = {}) {
@@ -2057,6 +2129,7 @@
       }));
       $$(".expand-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => toggleItem(button.dataset.itemId)));
       $$(".edit-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openItemDialog(findItem(button.dataset.itemId))));
+      $$(".configure-health", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openItemDialog(findItem(button.dataset.itemId), { focusHealth: true })));
       $$(".delete-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => requestDeleteItem(findItem(button.dataset.itemId))));
       $$(".add-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openSerialDialog(findItem(button.dataset.itemId))));
       $$(".view-logs", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => selectSerialLogs(button.dataset.itemId, button.dataset.serialId)));
@@ -2157,11 +2230,17 @@
           return `${previousMode} → ${nextMode}${locationPart}`;
         }
         case "Health changed": return `${healthStatusLabel(details.previousHealthStatus)} → ${healthStatusLabel(details.nextHealthStatus)}`;
+        case "Health tracking assigned": {
+          return details.nextMode === "count"
+            ? `Assigned count-based tracking: ${details.nextHealthyCount || 0} healthy, ${details.nextNonFunctionalCount || 0} not functional`
+            : "Assigned serial-based tracking; serial labels now determine experiment availability";
+        }
         case "Health tracking changed": {
-          const from = details.previousMode === "count" ? `count based (${details.previousHealthyCount || 0} healthy, ${details.previousNonFunctionalCount || 0} not functional)` : "serial based";
+          const from = details.previousMode === "count" ? `count based (${details.previousHealthyCount || 0} healthy, ${details.previousNonFunctionalCount || 0} not functional)` : details.previousMode === "serial" ? "serial based" : "not configured";
           const to = details.nextMode === "count" ? `count based (${details.nextHealthyCount || 0} healthy, ${details.nextNonFunctionalCount || 0} not functional)` : "serial based";
           return `${from} → ${to}`;
         }
+        case "Existing serial health initialized": return `${details.updatedSerialCount || 0} existing serial${Number(details.updatedSerialCount || 0) === 1 ? "" : "s"} marked ${healthStatusLabel(details.status)}`;
         case "Tags changed": {
           const previous = normalizeTags(details.previousTags).join(", ") || "No tags";
           const next = normalizeTags(details.nextTags).join(", ") || "No tags";
@@ -2186,7 +2265,7 @@
       }
 
       if (logs.length === 0) {
-        elements.activityList.innerHTML = `<div class="empty-state">${icon("clock")}<h3>No activity tickets</h3><p>${state.selectedLogFilter ? "No logged changes were found for this serial number." : "Serial registration, moves, lending, returns, item-location changes, and item-comment changes will appear here."}</p></div>`;
+        elements.activityList.innerHTML = `<div class="empty-state"><svg class="icon" aria-hidden="true"><use href="#icon-clock"></use></svg><h3>No activity tickets</h3><p>${state.selectedLogFilter ? "No logged changes were found for this serial number." : "Serial registration, moves, lending, returns, item-location changes, and item-comment changes will appear here."}</p></div>`;
         return;
       }
 
@@ -2207,19 +2286,23 @@
       if (window.innerWidth < 1080) document.querySelector(".activity-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    function openItemDialog(item = null) {
+    function openItemDialog(item = null, options = {}) {
       state.itemBeingEdited = item;
       state.itemPhotoBase64 = item?.photoBase64 || "";
       state.removeCurrentPhoto = false;
       elements.itemForm.reset();
-      elements.itemDialogTitle.textContent = item ? "Edit equipment item" : "Add equipment item";
-      elements.saveItemButton.textContent = item ? "Save changes" : "Save item";
+      const assigningLegacyHealth = Boolean(item && !itemHealthConfigured(item) && options.focusHealth);
+      elements.itemDialogTitle.textContent = assigningLegacyHealth ? "Assign health tracking" : item ? "Edit equipment item" : "Add equipment item";
+      elements.saveItemButton.textContent = assigningLegacyHealth ? "Save health setup" : item ? "Save changes" : "Save item";
       elements.itemProject.value = item?.projectName || "";
       elements.itemType.value = item?.itemType || "";
       elements.itemName.value = item?.name || "";
       elements.itemTags.value = normalizeTags(item?.tags).join(", ");
       elements.itemQuantity.value = item?.quantity || 1;
-      elements.itemHealthMode.value = itemHealthMode(item);
+      const healthConfigured = itemHealthConfigured(item);
+      elements.itemHealthSetupNotice.classList.toggle("hidden", !item || healthConfigured);
+      elements.itemHealthMode.value = healthConfigured ? itemHealthMode(item) : "";
+      elements.itemExistingSerialHealth.value = "keep";
       elements.itemHealthyCount.value = itemHealthMode(item) === "count" ? Number(item?.healthyCount || 0) : Number(item?.quantity || 1);
       elements.itemNonFunctionalCount.value = itemHealthMode(item) === "count" ? Number(item?.nonFunctionalCount || 0) : 0;
       refreshItemHealthMode(false);
@@ -2231,6 +2314,7 @@
       setInlineMessage(elements.itemFormMessage);
       updatePhotoPreview();
       elements.itemDialog.showModal();
+      if (options.focusHealth) setTimeout(() => elements.itemHealthMode.focus(), 0);
     }
 
     function updatePhotoPreview() {
@@ -2646,7 +2730,7 @@
         const tagLines = doc.splitTextToSize(`Tags: ${normalizeTags(item.tags).join(", ") || "None"}`, textWidth);
         const commentLines = doc.splitTextToSize(item.comment || "No main item comment.", textWidth);
         const metadataLines = doc.splitTextToSize(
-          `${item.projectName || ""} · ${item.itemType || ""} · Quantity ${item.quantity || 0} · Health: ${itemHealthStats(item).healthy} healthy, ${itemHealthStats(item).nonfunctional} not functional, ${itemHealthStats(item).unknown} unmarked (${itemHealthMode(item) === "count" ? "count based" : "serial based"}) · ${itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per-serial locations"}`,
+          `${item.projectName || ""} · ${item.itemType || ""} · Quantity ${item.quantity || 0} · Health: ${itemHealthStats(item).healthy} healthy, ${itemHealthStats(item).nonfunctional} not functional, ${itemHealthStats(item).unknown} unmarked (${itemHealthMode(item) === "count" ? "count based" : itemHealthMode(item) === "serial" ? "serial based" : "setup required"}) · ${itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per-serial locations"}`,
           textWidth,
         );
         const textHeight = 4 + nameLines.length * 4.4 + metadataLines.length * 3.5 + tagLines.length * 3.4 + commentLines.length * 3.5;
@@ -2689,7 +2773,7 @@
         const serialRows = (item.serials || []).map((serial) => ({
           serial: serial.serialNumber || "",
           location: formatLocation(itemUsesCombinedLocation(item) ? item.combinedLocation : serial.currentLocation),
-          health: itemHealthMode(item) === "serial" ? healthStatusLabel(serial.healthStatus) : "Count based",
+          health: itemHealthMode(item) === "serial" ? healthStatusLabel(serial.healthStatus) : itemHealthMode(item) === "count" ? "Count based" : "Setup required",
           status: serial.loan?.isLoaned ? `Lent${serial.loan?.memberName ? ` · ${serial.loan.memberName}` : ""}` : "Available",
         }));
 
@@ -2825,7 +2909,7 @@
           itemName: item.name || "",
           tags: normalizeTags(item.tags).join(", "),
           quantity: item.quantity || 0,
-          healthMode: healthStats.mode === "count" ? "Count based" : "Serial based",
+          healthMode: healthStats.mode === "count" ? "Count based" : healthStats.mode === "serial" ? "Serial based" : "Setup required",
           healthyCount: healthStats.healthy,
           nonFunctionalCount: healthStats.nonfunctional,
           unmarkedCount: healthStats.unknown,
@@ -2841,7 +2925,7 @@
         serials.forEach((serial) => rows.push({
           ...base,
           serialNumber: serial.serialNumber || "",
-          serialHealth: itemHealthMode(item) === "serial" ? healthStatusLabel(serial.healthStatus) : "Count based",
+          serialHealth: itemHealthMode(item) === "serial" ? healthStatusLabel(serial.healthStatus) : itemHealthMode(item) === "count" ? "Count based" : "Setup required",
           location: formatLocation(combined ? item.combinedLocation : serial.currentLocation),
           lendingStatus: serial.loan?.isLoaned ? "Lent" : "Available",
           memberName: serial.loan?.memberName || "",
@@ -2956,6 +3040,7 @@
     elements.searchInput.addEventListener("input", renderInventory);
     elements.projectFilter.addEventListener("change", renderInventory);
     elements.typeFilter.addEventListener("change", renderInventory);
+    elements.healthFilter.addEventListener("change", renderInventory);
     elements.clearLogFilter.addEventListener("click", () => { state.selectedLogFilter = null; renderActivity(); });
 
     elements.itemPhoto.addEventListener("change", async () => {
@@ -3052,12 +3137,14 @@
     elements.itemForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const locationMode = elements.itemLocationMode.value === "combined" ? "combined" : "serial";
-      const healthMode = elements.itemHealthMode.value === "count" ? "count" : "serial";
+      const healthMode = elements.itemHealthMode.value;
+      const existingSerialAction = elements.itemExistingSerialHealth.value;
       const healthyCount = Number(elements.itemHealthyCount.value || 0);
       const nonFunctionalCount = Number(elements.itemNonFunctionalCount.value || 0);
       let combinedLocation = null;
       try {
         if (locationMode === "combined") combinedLocation = validateLocationForHtml(readLocation(elements.itemCombinedLocationBuilder, "itemCombinedLocation"));
+        if (healthMode !== "serial" && healthMode !== "count") throw new Error("Select a health tracking method.");
         if (healthMode === "count") {
           const quantity = Number(elements.itemQuantity.value);
           if (!Number.isInteger(healthyCount) || healthyCount < 0 || !Number.isInteger(nonFunctionalCount) || nonFunctionalCount < 0) throw new Error("Health counts must be whole numbers of zero or more.");
@@ -3086,13 +3173,13 @@
           await updateEquipmentRecord(previousItem, payload, state.user);
           await saveItemLocationSettings(previousItem.id, previousItem, { ...previousItem, ...payload }, locationMode, combinedLocation);
           await saveItemTags(previousItem.id, previousItem, { ...previousItem, ...payload }, payload.tags);
-          await saveItemHealthSettings(previousItem.id, previousItem, { ...previousItem, ...payload }, healthMode, healthyCount, nonFunctionalCount);
+          await saveItemHealthSettings(previousItem.id, previousItem, { ...previousItem, ...payload }, healthMode, healthyCount, nonFunctionalCount, existingSerialAction);
           toast("Item updated", `${payload.name} was saved with ${payload.tags.length} search tag${payload.tags.length === 1 ? "" : "s"}${locationMode === "combined" ? " and one combined location" : " and serial-level locations"}.`);
         } else {
           const itemId = await createEquipment(payload, state.user);
           await saveItemLocationSettings(itemId, null, { id: itemId, ...payload }, locationMode, combinedLocation);
           await saveItemTags(itemId, null, { id: itemId, ...payload }, payload.tags);
-          await saveItemHealthSettings(itemId, null, { id: itemId, ...payload }, healthMode, healthyCount, nonFunctionalCount);
+          await saveItemHealthSettings(itemId, null, { id: itemId, ...payload }, healthMode, healthyCount, nonFunctionalCount, existingSerialAction);
           toast("Item created", `${payload.name} was added with ${payload.tags.length} search tag${payload.tags.length === 1 ? "" : "s"}${locationMode === "combined" ? " and a combined item location" : " and serial-level locations"}. Expand it to register serial numbers and comments.`);
         }
         elements.itemDialog.close();
