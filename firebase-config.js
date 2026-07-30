@@ -1,9 +1,10 @@
 /**
  * Lab Equipment Tracker — Firebase configuration and Realtime Database service
  *
- * This app deliberately reuses the existing Firebase project so every account
- * already created in Firebase Authentication can sign in here with the same
- * email address and password.
+ * This app deliberately reuses the existing Firebase project so every enabled
+ * account already created in Firebase Authentication can sign in here with the
+ * same email address and password. There is no app-level role, allowlist, profile,
+ * custom token, or second authorization check.
  *
  * Existing Firebase project:
  *   Project ID: engineering-861d3
@@ -220,21 +221,6 @@ export async function logout() {
 
 export async function sendResetEmail(email) {
   return sendPasswordResetEmail(auth, cleanText(email, 320));
-}
-
-/**
- * Every authenticated account in engineering-861d3 is allowed into this app.
- * The function name is retained so index.html can use the same clean interface.
- */
-export async function getAuthorizationProfile(user) {
-  if (!user) return null;
-  const emailName = String(user.email || "").split("@")[0];
-  return {
-    id: user.uid,
-    active: true,
-    name: user.displayName || emailName || "Authenticated member",
-    email: user.email || "",
-  };
 }
 
 export function subscribeEquipment(onData, onError) {

@@ -796,7 +796,6 @@
       createEquipment,
       deleteEquipmentRecord,
       firebaseConfigured,
-      getAuthorizationProfile,
       getInventoryExportRows,
       lendSerialNumber,
       loginWithEmail,
@@ -811,14 +810,13 @@
       subscribeEquipment,
       subscribeSerials,
       updateEquipmentRecord,
-    } from "./firebase-config.js";
+    } from "./firebase-config.js?v=20260730-no-extra-authorization";
 
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
     const state = {
       user: null,
-      profile: null,
       equipment: [],
       logs: [],
       serialsByItem: new Map(),
@@ -964,9 +962,9 @@
         "auth/too-many-requests": "Too many attempts. Try again later or reset the password.",
         "auth/user-disabled": "This account has been disabled.",
         "auth/network-request-failed": "The network request failed. Check the connection and try again.",
-        "permission-denied": "Your account does not have permission to perform this action.",
-        "permission_denied": "Your account does not have permission to perform this action.",
-        "PERMISSION_DENIED": "Your account does not have permission to perform this action.",
+        "permission-denied": "Firebase Realtime Database blocked the labEquipmentTracker tree. The sign-in succeeded; this app has no separate account permission check.",
+        "permission_denied": "Firebase Realtime Database blocked the labEquipmentTracker tree. The sign-in succeeded; this app has no separate account permission check.",
+        "PERMISSION_DENIED": "Firebase Realtime Database blocked the labEquipmentTracker tree. The sign-in succeeded; this app has no separate account permission check.",
       };
       return messages[code] || error?.message || "Something went wrong.";
     }
@@ -1241,7 +1239,7 @@
         <div class="ticket-top"><span class="ticket-action">${escapeHtml(log.actionType)}</span><time class="ticket-date">${escapeHtml(formatDateTime(log.occurredAt))}</time></div>
         <div class="ticket-item">${escapeHtml(log.itemName)} · <span class="ticket-serial">${escapeHtml(log.serialNumber)}</span></div>
         <div class="ticket-detail">${escapeHtml(logDetail(log))}</div>
-        <div class="ticket-actor">${escapeHtml(log.projectName)} · logged by ${escapeHtml(log.actorEmail || "authorized user")}</div>
+        <div class="ticket-actor">${escapeHtml(log.projectName)} · logged by ${escapeHtml(log.actorEmail || "signed-in user")}</div>
       </article>`).join("");
     }
 
@@ -1655,7 +1653,6 @@
         if (!user) {
           clearDataSubscriptions();
           state.user = null;
-          state.profile = null;
           elements.appView.classList.add("hidden");
           elements.loginView.classList.remove("hidden");
           return;
@@ -1663,15 +1660,9 @@
 
         setLoading(true, "Opening the lab equipment workspace…");
         try {
-          const profile = await getAuthorizationProfile(user);
-          if (!profile) {
-            await logout();
-            setInlineMessage(elements.loginMessage, "This Firebase account could not be loaded.", "error");
-            return;
-          }
           state.user = user;
-          state.profile = profile;
-          elements.userName.textContent = profile.name || user.displayName || "Authenticated member";
+          const emailName = String(user.email || "").split("@")[0];
+          elements.userName.textContent = user.displayName || emailName || "Authenticated member";
           elements.userEmail.textContent = user.email || "";
           elements.loginView.classList.add("hidden");
           elements.appView.classList.remove("hidden");
