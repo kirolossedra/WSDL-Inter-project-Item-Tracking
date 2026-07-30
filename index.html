@@ -562,6 +562,55 @@
     .location-builder .field + .field { margin-top: 0; }
     .location-builder .owner-field,
     .location-builder .exact-field { grid-column: span 2; }
+    .location-mode-help {
+      margin-top: .55rem;
+      padding: .72rem .78rem;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--surface-soft);
+      color: var(--ink-600);
+      font-size: .78rem;
+      line-height: 1.55;
+    }
+    .combined-location-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: .65rem;
+      margin-top: 1rem;
+      padding: .8rem .85rem;
+      border: 1px solid var(--lab-200);
+      border-radius: 12px;
+      background: var(--lab-100);
+      color: var(--ink-800);
+      font-size: .8rem;
+      line-height: 1.55;
+    }
+    .combined-location-banner strong { display: block; margin-bottom: .18rem; color: var(--lab-700); }
+    .item-location-inline { margin-top: .28rem; color: var(--lab-700); font-size: .72rem; font-weight: 750; }
+    .item-tags { display: flex; flex-wrap: wrap; gap: .28rem; margin-top: .4rem; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 180px;
+      padding: .26rem .48rem;
+      border: 1px solid #cbdde0;
+      border-radius: 999px;
+      color: var(--ink-700);
+      background: #f3f8f8;
+      font-size: .68rem;
+      font-weight: 800;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tag-chip.more { color: var(--lab-700); background: var(--lab-100); border-color: var(--lab-200); }
+    .detail-tags-block { margin-top: .8rem; }
+    .detail-tags-label { display: block; margin-bottom: .42rem; color: var(--ink-500); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .055em; }
+    .search-regex-help { display: block; margin-top: .32rem; color: var(--ink-500); font-size: .67rem; line-height: 1.35; }
+    .search-regex-help code { color: var(--lab-700); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .location-mode-badge { color: var(--lab-700); background: var(--lab-100); }
+    .location-mode-badge.serial { color: var(--ink-700); background: var(--surface-muted); }
     .confirm-text { line-height: 1.65; color: var(--ink-700); }
 
     .toast-region { position: fixed; right: 1rem; bottom: 1rem; z-index: 100; display: grid; gap: .6rem; width: min(92vw, 360px); }
@@ -712,7 +761,7 @@
 
     <main class="app-main">
       <div class="page-heading">
-        <div><h1>Equipment inventory</h1><p>Item-level inventory with independent serial locations and dated activity logs.</p></div>
+        <div><h1>Equipment inventory</h1><p>Item-level inventory with either one shared item location or independent serial locations, plus dated activity logs.</p></div>
         <div class="heading-actions">
           <span id="selectionCount" class="selection-summary hidden">0 selected</span>
           <button id="pdfButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Generate PDF</button>
@@ -729,9 +778,9 @@
 
       <section class="workspace">
         <div class="panel inventory-panel">
-          <div class="panel-header"><div><h2>Equipment table</h2><p>Select items for reports, or expand a row to manage serials and photo notes.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
+          <div class="panel-header"><div><h2>Equipment table</h2><p>Select items for reports, or expand a row to manage serials and item comments with photos.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
           <div class="toolbar">
-            <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search item name or comment" /></div>
+            <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search items, tags, comments, locations, or regex" title="Use spaces for multiple terms. Regular expressions are supported, for example aruba.*534 or /access\s+point/i." /><small class="search-regex-help">Spaces match multiple terms. Regex is supported, for example <code>aruba.*534</code> or <code>/access\s+point/i</code>.</small></div>
             <select id="projectFilter" aria-label="Filter by project"><option value="">All projects</option><option>Apple</option><option>AQS</option><option>Rogers</option></select>
             <select id="typeFilter" aria-label="Filter by item type"><option value="">All item types</option><option>Device</option><option>Component</option></select>
           </div>
@@ -739,7 +788,7 @@
         </div>
 
         <aside class="panel activity-panel" aria-label="Activity logs">
-          <div class="panel-header"><div><h2>Activity log</h2><p>Serial changes and item-note activity tickets.</p></div></div>
+          <div class="panel-header"><div><h2>Activity log</h2><p>Serial changes, item-location updates, and item-comment activity tickets.</p></div></div>
           <div class="activity-context"><strong id="activityContext">All recent activity</strong><button id="clearLogFilter" class="button button-ghost button-small hidden" type="button">Show all</button></div>
           <div id="activityList" class="activity-list"></div>
         </aside>
@@ -754,10 +803,13 @@
         <div class="form-grid">
           <div class="field"><label for="itemProject">Project Name</label><select id="itemProject" required><option value="">Select project</option><option>Apple</option><option>AQS</option><option>Rogers</option></select></div>
           <div class="field"><label for="itemType">Item Type</label><select id="itemType" required><option value="">Select type</option><option>Device</option><option>Component</option></select></div>
-          <div class="field span-2"><label for="itemName">Item name</label><input id="itemName" maxlength="160" placeholder="Example: Rohde & Schwarz spectrum analyzer" required /></div>
+          <div class="field span-2"><label for="itemName">Item name</label><input id="itemName" maxlength="160" placeholder="Example: Aruba AP-534" required /></div>
+          <div class="field span-2"><label for="itemTags">Search tags <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><input id="itemTags" maxlength="1500" placeholder="router, access point, Aruba, Wi-Fi 6, AP-534" /><small>Separate tags with commas. Spaces inside a tag are preserved, duplicates are removed, and tags are searchable with normal words or regular expressions.</small></div>
           <div class="field"><label for="itemQuantity">Quantity</label><input id="itemQuantity" type="number" min="1" max="10000" step="1" value="1" required /><small>Serial registrations cannot exceed this number.</small></div>
           <div class="field"><label>Photo</label><div class="photo-input-wrap"><div id="itemPhotoPreview" class="photo-preview"><span>No photo selected</span></div><div><input id="itemPhoto" type="file" accept="image/*" /><small>Images are compressed and stored as Base64. Maximum target size: 450 KB.</small><button id="removePhotoButton" class="button button-ghost button-small hidden" type="button">Remove photo</button></div></div></div>
-          <div class="field span-2"><label for="itemComment">Item comment</label><textarea id="itemComment" maxlength="4000" placeholder="Purpose, configuration notes, accessories, known limitations, or other item-level information"></textarea></div>
+          <div class="field span-2"><label for="itemLocationMode">Location tracking</label><select id="itemLocationMode"><option value="serial">Different location for each serial number</option><option value="combined">One combined location for the entire item</option></select><div class="location-mode-help">Use a combined location when all physical units are stored together. New serials inherit it automatically, and changing the item location updates the active serial records together.</div></div>
+          <div id="itemCombinedLocationField" class="field span-2 hidden"><label>Combined item location</label><div id="itemCombinedLocationBuilder" class="location-builder"></div><small>The exact-location text inside the selected sub-location remains optional.</small></div>
+          <div class="field span-2"><label for="itemComment">Main item comment <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><textarea id="itemComment" maxlength="4000" placeholder="Purpose, configuration summary, accessories, known limitations, or other item-level information"></textarea><small>Additional dated comments can be added after saving. Every additional comment may include its own photo.</small></div>
         </div>
         <div id="itemFormMessage" class="inline-message" role="status"></div>
       </div>
@@ -772,7 +824,8 @@
         <div class="field"><label>Entry mode</label><div class="segmented"><button id="singleSerialMode" class="active" type="button">One serial</button><button id="bulkSerialMode" type="button">Bulk list</button></div></div>
         <div id="singleSerialFields" class="field"><label for="singleSerialInput">Serial number</label><input id="singleSerialInput" maxlength="160" placeholder="Enter one serial number" /></div>
         <div id="bulkSerialFields" class="field hidden"><label for="bulkSerialInput">Serial numbers</label><textarea id="bulkSerialInput" placeholder="SN-001, SN-002, SN-003"></textarea><small>Separate values with commas, semicolons, tabs, spaces, or new lines.</small></div>
-        <div class="field"><label>Initial location for these serials</label><div id="serialLocationBuilder" class="location-builder"></div></div>
+        <div id="serialInheritedLocation" class="combined-location-banner hidden"></div>
+        <div id="serialLocationField" class="field"><label>Initial location for these serials</label><div id="serialLocationBuilder" class="location-builder"></div></div>
         <div class="field"><label for="serialDate">Registration date</label><input id="serialDate" type="datetime-local" required /></div>
         <div id="serialFormMessage" class="inline-message" role="status"></div>
       </div>
@@ -785,7 +838,8 @@
       <div class="dialog-header"><div><h2>Edit serial record</h2><p>Modify the serial number, exact location, sub-location, and lending status.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="renameSerialDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
       <div class="dialog-body">
         <div class="field"><label for="renameSerialInput">Serial number</label><input id="renameSerialInput" maxlength="160" required /></div>
-        <div class="field"><label>Current location</label><div id="renameSerialLocationBuilder" class="location-builder"></div></div>
+        <div id="renameSerialInheritedLocation" class="combined-location-banner hidden"></div>
+        <div id="renameSerialLocationField" class="field"><label>Current location</label><div id="renameSerialLocationBuilder" class="location-builder"></div></div>
         <div class="field"><label for="renameSerialStatus">Current status</label><select id="renameSerialStatus"><option value="available">Available</option><option value="loaned">Lent to a member</option></select></div>
         <div id="renameSerialMemberField" class="field hidden"><label for="renameSerialMemberName">Member name</label><input id="renameSerialMemberName" maxlength="160" placeholder="Name of member holding this serial" /></div>
         <div class="field"><label for="renameSerialDate">Effective date</label><input id="renameSerialDate" type="datetime-local" required /></div>
@@ -814,20 +868,20 @@
 
   <dialog id="noteDialog">
     <form id="noteForm" method="dialog">
-      <div class="dialog-header"><div><h2 id="noteDialogTitle">Add item note</h2><p id="noteDialogSubtitle">Notes may contain text, a photo, or both.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="noteDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-header"><div><h2 id="noteDialogTitle">Add item comment</h2><p id="noteDialogSubtitle">Comments may contain text, a photo, or both.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="noteDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
       <div class="dialog-body">
-        <div class="field"><label for="noteText">Note text <span style="font-weight:500;color:var(--ink-500)">(optional when a photo is included)</span></label><textarea id="noteText" maxlength="5000" placeholder="Inspection result, configuration detail, damage, accessory information, or any other item note"></textarea></div>
-        <div class="field"><label>Note photo <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><div class="photo-input-wrap"><div id="notePhotoPreview" class="photo-preview"><span>No note photo selected</span></div><div><input id="notePhoto" type="file" accept="image/*" /><small>Stored as compressed Base64 in the item note record.</small><button id="removeNotePhotoButton" class="button button-ghost button-small hidden" type="button">Remove note photo</button></div></div></div>
-        <div class="field"><label for="noteDate">Note date</label><input id="noteDate" type="datetime-local" required /></div>
+        <div class="field"><label for="noteText">Comment text <span style="font-weight:500;color:var(--ink-500)">(optional when a photo is included)</span></label><textarea id="noteText" maxlength="5000" placeholder="Inspection result, configuration detail, damage, accessory information, or any other item comment"></textarea></div>
+        <div class="field"><label>Comment photo <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><div class="photo-input-wrap"><div id="notePhotoPreview" class="photo-preview"><span>No comment photo selected</span></div><div><input id="notePhoto" type="file" accept="image/*" /><small>Stored as compressed Base64 in this item comment.</small><button id="removeNotePhotoButton" class="button button-ghost button-small hidden" type="button">Remove comment photo</button></div></div></div>
+        <div class="field"><label for="noteDate">Comment date</label><input id="noteDate" type="datetime-local" required /></div>
         <div id="noteFormMessage" class="inline-message" role="status"></div>
       </div>
-      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="noteDialog">Cancel</button><button id="saveNoteButton" class="button button-primary" type="submit">Save note</button></div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="noteDialog">Cancel</button><button id="saveNoteButton" class="button button-primary" type="submit">Save comment</button></div>
     </form>
   </dialog>
 
   <dialog id="pdfDialog">
     <form id="pdfForm" method="dialog">
-      <div class="dialog-header"><div><h2>Generate inventory PDF</h2><p>Creates a table report with item photos, serial details, notes, and note photos.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="pdfDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-header"><div><h2>Generate inventory PDF</h2><p>Creates a table report with item photos, combined or serial locations, serial details, comments, and comment photos.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="pdfDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
       <div class="dialog-body">
         <div class="pdf-scope-grid">
           <div class="field"><label for="pdfScope">Report basis</label><select id="pdfScope"><option value="selection">Selected items</option><option value="project">Project</option><option value="category">Item category</option></select></div>
@@ -863,7 +917,6 @@
       deleteEquipmentRecord,
       deleteItemNote,
       firebaseConfigured,
-      getInventoryExportRows,
       getInventoryReportData,
       lendSerialNumber,
       loginWithEmail,
@@ -881,7 +934,18 @@
       updateEquipmentRecord,
       updateItemNote,
     } from "./firebase-config.js?v=20260730-note-photos-pdf-reports";
+    import { getApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import {
+      get,
+      getDatabase,
+      push,
+      ref,
+      serverTimestamp,
+      update,
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
+    const htmlDb = getDatabase(getApp());
+    const TRACKER_ROOT = "labEquipmentTracker";
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -946,10 +1010,14 @@
       itemProject: $("#itemProject"),
       itemType: $("#itemType"),
       itemName: $("#itemName"),
+      itemTags: $("#itemTags"),
       itemQuantity: $("#itemQuantity"),
       itemPhoto: $("#itemPhoto"),
       itemPhotoPreview: $("#itemPhotoPreview"),
       removePhotoButton: $("#removePhotoButton"),
+      itemLocationMode: $("#itemLocationMode"),
+      itemCombinedLocationField: $("#itemCombinedLocationField"),
+      itemCombinedLocationBuilder: $("#itemCombinedLocationBuilder"),
       itemComment: $("#itemComment"),
       itemFormMessage: $("#itemFormMessage"),
       saveItemButton: $("#saveItemButton"),
@@ -962,6 +1030,8 @@
       bulkSerialFields: $("#bulkSerialFields"),
       singleSerialInput: $("#singleSerialInput"),
       bulkSerialInput: $("#bulkSerialInput"),
+      serialInheritedLocation: $("#serialInheritedLocation"),
+      serialLocationField: $("#serialLocationField"),
       serialLocationBuilder: $("#serialLocationBuilder"),
       serialDate: $("#serialDate"),
       serialFormMessage: $("#serialFormMessage"),
@@ -969,6 +1039,8 @@
       renameSerialDialog: $("#renameSerialDialog"),
       renameSerialForm: $("#renameSerialForm"),
       renameSerialInput: $("#renameSerialInput"),
+      renameSerialInheritedLocation: $("#renameSerialInheritedLocation"),
+      renameSerialLocationField: $("#renameSerialLocationField"),
       renameSerialLocationBuilder: $("#renameSerialLocationBuilder"),
       renameSerialStatus: $("#renameSerialStatus"),
       renameSerialMemberField: $("#renameSerialMemberField"),
@@ -1034,6 +1106,240 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function normalizeTags(value) {
+      const source = Array.isArray(value) ? value : String(value ?? "").split(",");
+      const result = [];
+      const seen = new Set();
+      for (const entry of source) {
+        const tag = String(entry ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
+        if (!tag) continue;
+        const key = tag.toLocaleLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push(tag);
+        if (result.length >= 50) break;
+      }
+      return result;
+    }
+
+    function sameTags(a, b) {
+      const left = normalizeTags(a).map((tag) => tag.toLocaleLowerCase()).sort();
+      const right = normalizeTags(b).map((tag) => tag.toLocaleLowerCase()).sort();
+      return JSON.stringify(left) === JSON.stringify(right);
+    }
+
+    function renderTagChips(tags, limit = 6) {
+      const values = normalizeTags(tags);
+      if (values.length === 0) return "";
+      const visible = values.slice(0, limit);
+      const remaining = values.length - visible.length;
+      return `<div class="item-tags">${visible.map((tag) => `<span class="tag-chip" title="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join("")}${remaining > 0 ? `<span class="tag-chip more">+${remaining} more</span>` : ""}</div>`;
+    }
+
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function compileSearchPattern(pattern, flags = "i", literalFallback = pattern) {
+      const safeFlags = [...new Set(`${flags}`.replace(/[gy]/g, "").split("").filter((flag) => "imsu".includes(flag)).concat("i"))].join("");
+      try {
+        return new RegExp(pattern, safeFlags);
+      } catch {
+        return new RegExp(escapeRegExp(literalFallback), "i");
+      }
+    }
+
+    function buildSearchMatcher(query) {
+      const input = String(query ?? "").trim();
+      if (!input) return () => true;
+
+      const fullRegex = input.match(/^\/((?:\\.|[^/])+)\/([gimsuy]*)$/);
+      if (fullRegex) {
+        const expression = compileSearchPattern(fullRegex[1], fullRegex[2], fullRegex[1]);
+        return (text) => { expression.lastIndex = 0; return expression.test(text); };
+      }
+
+      const parts = [];
+      const tokenPattern = /"([^"]+)"|'([^']+)'|\/((?:\\.|[^/])+)\/([gimsuy]*)|[^\s,]+/g;
+      let match;
+      while ((match = tokenPattern.exec(input))) {
+        if (match[1] != null || match[2] != null) {
+          const phrase = match[1] ?? match[2];
+          parts.push(compileSearchPattern(escapeRegExp(phrase), "i", phrase));
+        } else if (match[3] != null) {
+          parts.push(compileSearchPattern(match[3], match[4], match[3]));
+        } else {
+          parts.push(compileSearchPattern(match[0], "i", match[0]));
+        }
+      }
+      return (text) => parts.every((expression) => { expression.lastIndex = 0; return expression.test(text); });
+    }
+
+    function itemSearchText(item) {
+      const serials = state.serialsByItem.get(item.id) || [];
+      const notes = state.notesByItem.get(item.id) || [];
+      const values = [
+        item.name,
+        item.projectName,
+        item.itemType,
+        item.comment,
+        ...normalizeTags(item.tags),
+        formatLocation(item.combinedLocation),
+        ...serials.flatMap((serial) => [serial.serialNumber, formatLocation(serial.currentLocation), serial.loan?.memberName]),
+        ...notes.map((note) => note.text),
+      ].filter(Boolean).map((value) => String(value));
+      const variants = values.flatMap((value) => {
+        const folded = value.normalize("NFKD").replace(/\p{M}/gu, "");
+        const words = folded.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+        const compact = folded.replace(/[^\p{L}\p{N}]+/gu, "");
+        return [value, words, compact];
+      });
+      return variants.join(" ");
+    }
+
+    function itemUsesCombinedLocation(item) {
+      return item?.locationMode === "combined" && Boolean(item?.combinedLocation?.site);
+    }
+
+    function validateLocationForHtml(location) {
+      const site = String(location?.site || "").trim();
+      const subLocation = String(location?.subLocation || "").trim();
+      const officeOwner = String(location?.officeOwner || "").trim().slice(0, 120);
+      const exactLocation = String(location?.exactLocation || "").trim().slice(0, 240);
+      if (!Object.prototype.hasOwnProperty.call(SITES, site)) throw new Error("Select a valid site.");
+      if (!SITES[site].includes(subLocation)) throw new Error("Select a valid sub-location.");
+      if (site === "E5" && subLocation === "Someone Else's Office" && !officeOwner) throw new Error("Provide the office owner's name.");
+      return {
+        site,
+        subLocation,
+        officeOwner: site === "E5" && subLocation === "Someone Else's Office" ? officeOwner : "",
+        exactLocation,
+      };
+    }
+
+    function sameLocation(a, b) {
+      const normalized = (value) => ({
+        site: String(value?.site || ""),
+        subLocation: String(value?.subLocation || ""),
+        officeOwner: String(value?.officeOwner || ""),
+        exactLocation: String(value?.exactLocation || ""),
+      });
+      return JSON.stringify(normalized(a)) === JSON.stringify(normalized(b));
+    }
+
+    function firebaseUserStamp() {
+      if (!state.user?.uid) throw new Error("A signed-in Firebase user is required.");
+      return { uid: state.user.uid, email: state.user.email || "" };
+    }
+
+    async function saveItemLocationSettings(itemId, previousItem, nextItem, locationMode, combinedLocation) {
+      const nextMode = locationMode === "combined" ? "combined" : "serial";
+      const previousMode = previousItem?.locationMode === "combined" ? "combined" : "serial";
+      const normalizedCombined = nextMode === "combined" ? validateLocationForHtml(combinedLocation) : null;
+      const previousCombined = previousItem?.combinedLocation || null;
+      const locationChanged = previousMode !== nextMode || (nextMode === "combined" && !sameLocation(previousCombined, normalizedCombined));
+      const writes = {
+        [`${TRACKER_ROOT}/equipment/${itemId}/locationMode`]: nextMode,
+        [`${TRACKER_ROOT}/equipment/${itemId}/combinedLocation`]: normalizedCombined,
+        [`${TRACKER_ROOT}/equipment/${itemId}/updatedAt`]: serverTimestamp(),
+        [`${TRACKER_ROOT}/equipment/${itemId}/updatedBy`]: firebaseUserStamp(),
+      };
+
+      if (nextMode === "combined") {
+        const snapshot = await get(ref(htmlDb, `${TRACKER_ROOT}/serials/${itemId}`));
+        const serials = snapshot.val() || {};
+        Object.entries(serials).forEach(([serialId, serial]) => {
+          const fromLocation = serial?.currentLocation || previousCombined || normalizedCombined;
+          writes[`${TRACKER_ROOT}/serials/${itemId}/${serialId}/currentLocation`] = normalizedCombined;
+          writes[`${TRACKER_ROOT}/serials/${itemId}/${serialId}/updatedAt`] = serverTimestamp();
+          writes[`${TRACKER_ROOT}/serials/${itemId}/${serialId}/updatedBy`] = firebaseUserStamp();
+          if (!sameLocation(fromLocation, normalizedCombined)) {
+            const logId = push(ref(htmlDb, `${TRACKER_ROOT}/activityLogs`)).key;
+            writes[`${TRACKER_ROOT}/activityLogs/${logId}`] = {
+              itemId,
+              itemName: nextItem.name,
+              projectName: nextItem.projectName,
+              itemType: nextItem.itemType,
+              serialId,
+              serialNumber: serial?.serialNumber || "",
+              actionType: "Moved",
+              occurredAt: Date.now(),
+              loggedAt: serverTimestamp(),
+              actorUid: state.user.uid,
+              actorEmail: state.user.email || "",
+              details: { fromLocation, toLocation: normalizedCombined, movementSource: "combined-item-location" },
+            };
+          }
+        });
+      }
+
+      if (previousItem && locationChanged) {
+        const logId = push(ref(htmlDb, `${TRACKER_ROOT}/activityLogs`)).key;
+        writes[`${TRACKER_ROOT}/activityLogs/${logId}`] = {
+          itemId,
+          itemName: nextItem.name,
+          projectName: nextItem.projectName,
+          itemType: nextItem.itemType,
+          serialId: "",
+          serialNumber: "",
+          actionType: "Item location changed",
+          occurredAt: Date.now(),
+          loggedAt: serverTimestamp(),
+          actorUid: state.user.uid,
+          actorEmail: state.user.email || "",
+          details: {
+            previousMode,
+            nextMode,
+            fromLocation: previousMode === "combined" ? previousCombined : null,
+            toLocation: nextMode === "combined" ? normalizedCombined : null,
+          },
+        };
+      }
+
+      await update(ref(htmlDb), writes);
+    }
+
+    async function saveItemTags(itemId, previousItem, nextItem, rawTags) {
+      const tags = normalizeTags(rawTags);
+      const previousTags = normalizeTags(previousItem?.tags);
+      const changed = !sameTags(previousTags, tags);
+      const writes = {
+        [`${TRACKER_ROOT}/equipment/${itemId}/tags`]: tags.length ? tags : null,
+        [`${TRACKER_ROOT}/equipment/${itemId}/updatedAt`]: serverTimestamp(),
+        [`${TRACKER_ROOT}/equipment/${itemId}/updatedBy`]: firebaseUserStamp(),
+      };
+
+      if (previousItem && changed) {
+        const logId = push(ref(htmlDb, `${TRACKER_ROOT}/activityLogs`)).key;
+        writes[`${TRACKER_ROOT}/activityLogs/${logId}`] = {
+          itemId,
+          itemName: nextItem.name,
+          projectName: nextItem.projectName,
+          itemType: nextItem.itemType,
+          serialId: "",
+          serialNumber: "",
+          actionType: "Tags changed",
+          occurredAt: Date.now(),
+          loggedAt: serverTimestamp(),
+          actorUid: state.user.uid,
+          actorEmail: state.user.email || "",
+          details: { previousTags, nextTags: tags },
+        };
+      }
+
+      await update(ref(htmlDb), writes);
+      return changed;
+    }
+
+    function refreshItemLocationMode() {
+      const combined = elements.itemLocationMode.value === "combined";
+      elements.itemCombinedLocationField.classList.toggle("hidden", !combined);
+    }
+
+    function combinedLocationBannerHtml(item, title = "Combined item location") {
+      return `${icon("move")}<div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(formatLocation(item.combinedLocation))}</span><br><span>All serial numbers for this item use this location until the item is changed back to serial-level tracking.</span></div>`;
     }
 
     function setInlineMessage(element, message = "", type = "error") {
@@ -1163,11 +1469,11 @@
     }
 
     function filteredEquipment() {
-      const search = elements.searchInput.value.trim().toLowerCase();
+      const matcher = buildSearchMatcher(elements.searchInput.value);
       const project = elements.projectFilter.value;
       const type = elements.typeFilter.value;
       return state.equipment.filter((item) => {
-        const matchesSearch = !search || `${item.name} ${item.comment || ""}`.toLowerCase().includes(search);
+        const matchesSearch = matcher(itemSearchText(item));
         return matchesSearch && (!project || item.projectName === project) && (!type || item.itemType === type);
       });
     }
@@ -1195,7 +1501,7 @@
 
       elements.inventoryContent.innerHTML = `
         <table class="inventory-table">
-          <thead><tr><th class="selection-cell"><input id="selectVisibleItems" class="selection-checkbox" type="checkbox" aria-label="Select all visible items" /></th><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
+          <thead><tr><th class="selection-cell"><input id="selectVisibleItems" class="selection-checkbox" type="checkbox" aria-label="Select all visible items" /></th><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Location</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
           <tbody>${items.map(renderItemRows).join("")}</tbody>
         </table>`;
 
@@ -1216,35 +1522,43 @@
         : `<div class="photo-placeholder">${icon("image")}</div>`;
       const commentSummary = item.comment ? escapeHtml(item.comment.replace(/\s+/g, " ")) : "No item comment";
       const selected = state.selectedItems.has(item.id);
+      const combined = itemUsesCombinedLocation(item);
+      const itemLocationSummary = combined ? formatLocation(item.combinedLocation) : "Per serial number";
       return `
         <tr class="inventory-row ${expanded ? "expanded" : ""} ${selected ? "selected" : ""}" data-item-id="${item.id}">
           <td class="selection-cell"><input class="selection-checkbox select-item" type="checkbox" data-item-id="${item.id}" aria-label="Select ${escapeHtml(item.name)} for PDF" ${selected ? "checked" : ""} /></td>
           <td class="photo-cell">${photo}</td>
-          <td><div class="item-name">${escapeHtml(item.name)}</div><div class="item-subtext">${commentSummary}</div></td>
+          <td><div class="item-name">${escapeHtml(item.name)}</div><div class="item-subtext">${commentSummary}</div>${renderTagChips(item.tags, 4)}<div class="item-location-inline">${escapeHtml(itemLocationSummary)}</div></td>
           <td><span class="badge badge-project">${escapeHtml(item.projectName)}</span></td>
           <td><span class="badge ${item.itemType === "Device" ? "badge-device" : "badge-component"}">${escapeHtml(item.itemType)}</span></td>
+          <td><span class="badge location-mode-badge ${combined ? "" : "serial"}">${combined ? escapeHtml(formatLocation(item.combinedLocation)) : "Per serial"}</span></td>
           <td><span class="quantity-value">${Number(item.quantity || 0).toLocaleString()}</span><span class="quantity-sub">physical units</span></td>
           <td><span class="quantity-value">${Number(item.serialCount || 0).toLocaleString()}</span><span class="quantity-sub">registered</span></td>
           <td class="actions-cell"><div class="row-actions"><button class="button button-ghost button-icon expand-item" type="button" data-item-id="${item.id}" aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(item.name)}">${icon("chevron", "icon chevron")}</button></div></td>
         </tr>
-        ${expanded ? `<tr class="detail-row"><td colspan="8">${renderItemDetail(item)}</td></tr>` : ""}`;
+        ${expanded ? `<tr class="detail-row"><td colspan="9">${renderItemDetail(item)}</td></tr>` : ""}`;
     }
 
     function renderItemDetail(item) {
       const serials = state.serialsByItem.get(item.id);
       const notes = state.notesByItem.get(item.id);
       const photo = item.photoBase64 ? `<img class="detail-photo" src="${escapeHtml(item.photoBase64)}" alt="${escapeHtml(item.name)}" />` : `<div class="detail-card empty-state" style="padding:2rem">${icon("image")}<h3>No item photo</h3></div>`;
+      const combined = itemUsesCombinedLocation(item);
       return `<div class="item-detail">
         <div class="detail-top">
           <div>${photo}</div>
           <div class="detail-card">
-            <h3>Item comment</h3>
-            <p class="comment-text">${escapeHtml(item.comment || "No comment has been added for this item.")}</p>
+            <h3>Main item comment</h3>
+            <p class="comment-text">${escapeHtml(item.comment || "No main comment has been added for this item.")}</p>
+            <div class="detail-tags-block"><span class="detail-tags-label">Search tags</span>${renderTagChips(item.tags, 50) || `<span class="location-sub">No tags added</span>`}</div>
+            ${combined ? `<div class="combined-location-banner">${combinedLocationBannerHtml(item)}</div>` : ""}
             <div class="detail-meta">
               <div class="meta-box"><span>Project</span><strong>${escapeHtml(item.projectName)}</strong></div>
               <div class="meta-box"><span>Type</span><strong>${escapeHtml(item.itemType)}</strong></div>
               <div class="meta-box"><span>Quantity</span><strong>${Number(item.quantity || 0).toLocaleString()}</strong></div>
               <div class="meta-box"><span>Registered</span><strong>${Number(item.serialCount || 0).toLocaleString()}</strong></div>
+              <div class="meta-box"><span>Location tracking</span><strong>${combined ? "Combined item location" : "Per serial number"}</strong></div>
+              <div class="meta-box"><span>Item location</span><strong>${escapeHtml(combined ? formatLocation(item.combinedLocation) : "Stored on each serial record")}</strong></div>
             </div>
             <div class="detail-actions">
               <button class="button button-secondary button-small edit-item" type="button" data-item-id="${item.id}">${icon("edit")} Edit item</button>
@@ -1253,26 +1567,26 @@
           </div>
         </div>
         <section class="serial-section">
-          <div class="serial-heading"><div><h3>Serial numbers</h3><span>Each serial has its own location and history.</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
+          <div class="serial-heading"><div><h3>Serial numbers</h3><span>${combined ? "All serials inherit the combined item location; lending and status remain serial-specific." : "Each serial has its own location and history."}</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
           ${renderSerialTable(item, serials)}
         </section>
         <section class="notes-section">
-          <div class="notes-heading"><div><h3>Item notes</h3><span>Text and photo notes are stored separately from the main item photo.</span></div><button class="button button-primary button-small add-note" type="button" data-item-id="${item.id}">${icon("plus")} Add note</button></div>
+          <div class="notes-heading"><div><h3>Item comments</h3><span>Each item may have multiple dated comments, and every comment may contain its own photo.</span></div><button class="button button-primary button-small add-note" type="button" data-item-id="${item.id}">${icon("plus")} Add comment</button></div>
           ${renderNotes(item, notes)}
         </section>
       </div>`;
     }
 
     function renderNotes(item, notes) {
-      if (!notes) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading item notes</h3></div>`;
-      if (notes.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("image")}<h3>No item notes</h3><p>Add a dated text note, a photo note, or both. Note photos are included in generated PDF reports.</p></div>`;
+      if (!notes) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading item comments</h3></div>`;
+      if (notes.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("image")}<h3>No item comments</h3><p>Add a dated text note, a photo note, or both. Comment photos are included in generated PDF reports.</p></div>`;
       return `<div class="notes-grid">${notes.map((note) => {
         const hasPhoto = Boolean(note.photoBase64);
         return `<article class="note-card ${hasPhoto ? "" : "no-photo"}">
-          ${hasPhoto ? `<img class="note-photo" src="${escapeHtml(note.photoBase64)}" alt="Photo attached to item note" />` : ""}
+          ${hasPhoto ? `<img class="note-photo" src="${escapeHtml(note.photoBase64)}" alt="Photo attached to item comment" />` : ""}
           <div class="note-body">
             <div class="note-date">${escapeHtml(formatDateTime(note.noteDate || note.createdAt))}</div>
-            <p class="note-text">${escapeHtml(note.text || "Photo-only note")}</p>
+            <p class="note-text">${escapeHtml(note.text || "Photo-only comment")}</p>
             <div class="note-actions">
               <button class="button button-secondary button-small edit-note" type="button" data-item-id="${item.id}" data-note-id="${note.id}">${icon("edit")} Edit</button>
               <button class="button button-danger button-small delete-note" type="button" data-item-id="${item.id}" data-note-id="${note.id}">${icon("trash")} Delete</button>
@@ -1283,17 +1597,19 @@
     }
 
     function renderSerialTable(item, serials) {
+      const combined = itemUsesCombinedLocation(item);
       if (!serials) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading serial numbers</h3></div>`;
-      if (serials.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("hash")}<h3>No serial numbers registered</h3><p>Add them one at a time or paste a separated bulk list. One initial location is applied to that entry batch. Every serial can later be fully edited, including its exact place within the selected sub-location.</p></div>`;
+      if (serials.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("hash")}<h3>No serial numbers registered</h3><p>${combined ? `Add them one at a time or paste a separated bulk list. They will automatically use ${escapeHtml(formatLocation(item.combinedLocation))}.` : "Add them one at a time or paste a separated bulk list. One initial location is applied to that entry batch. Every serial can later be fully edited, including its exact place within the selected sub-location."}</p></div>`;
       return `<div class="table-wrap"><table class="serial-table"><thead><tr><th>Serial number</th><th>Current location</th><th>Status</th><th></th></tr></thead><tbody>${serials.map((serial) => {
         const loaned = Boolean(serial.loan?.isLoaned);
+        const shownLocation = combined ? item.combinedLocation : serial.currentLocation;
         return `<tr>
           <td><span class="serial-number">${escapeHtml(serial.serialNumber)}</span></td>
-          <td>${locationSummaryHtml(serial.currentLocation)}</td>
+          <td>${locationSummaryHtml(shownLocation)}${combined ? `<span class="location-sub">Combined item location</span>` : ""}</td>
           <td>${loaned ? `<span class="badge badge-loaned">Lent to ${escapeHtml(serial.loan.memberName)}</span>` : `<span class="badge badge-available">Available</span>`}</td>
           <td><div class="serial-actions">
             <button class="button button-ghost button-small view-logs" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("clock")} Logs</button>
-            <button class="button button-secondary button-small move-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" ${loaned ? "disabled title=\"Return before moving\"" : ""}>${icon("move")} Move</button>
+            ${combined ? "" : `<button class="button button-secondary button-small move-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" ${loaned ? "disabled title=\"Return before moving\"" : ""}>${icon("move")} Move</button>`}
             <button class="button ${loaned ? "button-primary" : "button-secondary"} button-small ${loaned ? "return-serial" : "lend-serial"}" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("user")} ${loaned ? "Return" : "Lend"}</button>
             <button class="button button-ghost button-icon button-small rename-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Edit complete serial record" title="Edit serial number, location, and status">${icon("edit")}</button>
             <button class="button button-ghost button-icon button-small remove-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Remove serial">${icon("trash")}</button>
@@ -1413,9 +1729,20 @@
           return changes.join(" · ") || "Serial record updated.";
         }
         case "Removed": return `Removed from inventory. Last location: ${formatLocation(details.fromLocation)}`;
-        case "Note added": return `${details.noteText || "Photo-only note"}${details.hasPhoto ? " · Photo attached" : ""}`;
-        case "Note modified": return `${details.nextText || "Photo-only note"}${details.nextHasPhoto ? " · Photo attached" : ""}`;
-        case "Note removed": return `${details.noteText || "Photo-only note"}${details.hadPhoto ? " · Attached photo removed" : ""}`;
+        case "Item location changed": {
+          const previousMode = details.previousMode === "combined" ? "combined item location" : "per-serial locations";
+          const nextMode = details.nextMode === "combined" ? "combined item location" : "per-serial locations";
+          const locationPart = details.nextMode === "combined" ? ` · ${formatLocation(details.toLocation)}` : "";
+          return `${previousMode} → ${nextMode}${locationPart}`;
+        }
+        case "Tags changed": {
+          const previous = normalizeTags(details.previousTags).join(", ") || "No tags";
+          const next = normalizeTags(details.nextTags).join(", ") || "No tags";
+          return `${previous} → ${next}`;
+        }
+        case "Comment added": return `${details.noteText || "Photo-only comment"}${details.hasPhoto ? " · Photo attached" : ""}`;
+        case "Note modified": return `${details.nextText || "Photo-only comment"}${details.nextHasPhoto ? " · Photo attached" : ""}`;
+        case "Note removed": return `${details.noteText || "Photo-only comment"}${details.hadPhoto ? " · Attached photo removed" : ""}`;
         default: return "Activity recorded.";
       }
     }
@@ -1432,13 +1759,13 @@
       }
 
       if (logs.length === 0) {
-        elements.activityList.innerHTML = `<div class="empty-state">${icon("clock")}<h3>No activity tickets</h3><p>${state.selectedLogFilter ? "No logged changes were found for this serial number." : "Serial registration, moves, lending, returns, and other serial changes will appear here."}</p></div>`;
+        elements.activityList.innerHTML = `<div class="empty-state">${icon("clock")}<h3>No activity tickets</h3><p>${state.selectedLogFilter ? "No logged changes were found for this serial number." : "Serial registration, moves, lending, returns, item-location changes, and item-comment changes will appear here."}</p></div>`;
         return;
       }
 
       elements.activityList.innerHTML = logs.map((log) => `<article class="activity-ticket" data-action="${escapeHtml(log.actionType)}">
         <div class="ticket-top"><span class="ticket-action">${escapeHtml(log.actionType)}</span><time class="ticket-date">${escapeHtml(formatDateTime(log.occurredAt))}</time></div>
-        <div class="ticket-item">${escapeHtml(log.itemName)}${log.serialNumber ? ` · <span class="ticket-serial">${escapeHtml(log.serialNumber)}</span>` : " · Item note"}</div>
+        <div class="ticket-item">${escapeHtml(log.itemName)}${log.serialNumber ? ` · <span class="ticket-serial">${escapeHtml(log.serialNumber)}</span>` : log.actionType?.startsWith("Note ") ? " · Item comment" : " · Item"}</div>
         <div class="ticket-detail">${escapeHtml(logDetail(log))}</div>
         <div class="ticket-actor">${escapeHtml(log.projectName)} · logged by ${escapeHtml(log.actorEmail || "signed-in user")}</div>
       </article>`).join("");
@@ -1463,7 +1790,11 @@
       elements.itemProject.value = item?.projectName || "";
       elements.itemType.value = item?.itemType || "";
       elements.itemName.value = item?.name || "";
+      elements.itemTags.value = normalizeTags(item?.tags).join(", ");
       elements.itemQuantity.value = item?.quantity || 1;
+      elements.itemLocationMode.value = item?.locationMode === "combined" ? "combined" : "serial";
+      buildLocationFields(elements.itemCombinedLocationBuilder, "itemCombinedLocation", item?.combinedLocation || { site: "EC5", subLocation: "Shared Space" });
+      refreshItemLocationMode();
       elements.itemComment.value = item?.comment || "";
       elements.itemPhoto.value = "";
       setInlineMessage(elements.itemFormMessage);
@@ -1517,12 +1848,12 @@
       state.notePhotoBase64 = note?.photoBase64 || "";
       state.removeCurrentNotePhoto = false;
       elements.noteForm.reset();
-      elements.noteDialogTitle.textContent = note ? "Edit item note" : "Add item note";
-      elements.noteDialogSubtitle.textContent = `${item.name} · notes may contain text, a photo, or both.`;
+      elements.noteDialogTitle.textContent = note ? "Edit item comment" : "Add item comment";
+      elements.noteDialogSubtitle.textContent = `${item.name} · comments may contain text, a photo, or both.`;
       elements.noteText.value = note?.text || "";
       elements.noteDate.value = note ? toLocalInputValue(note.noteDate || note.createdAt) : nowLocalInputValue();
       elements.notePhoto.value = "";
-      elements.saveNoteButton.textContent = note ? "Save note changes" : "Save note";
+      elements.saveNoteButton.textContent = note ? "Save comment changes" : "Save comment";
       setInlineMessage(elements.noteFormMessage);
       updateNotePhotoPreview();
       elements.noteDialog.showModal();
@@ -1530,10 +1861,10 @@
 
     function updateNotePhotoPreview() {
       if (state.notePhotoBase64 && !state.removeCurrentNotePhoto) {
-        elements.notePhotoPreview.innerHTML = `<img src="${escapeHtml(state.notePhotoBase64)}" alt="Selected note photo preview" />`;
+        elements.notePhotoPreview.innerHTML = `<img src="${escapeHtml(state.notePhotoBase64)}" alt="Selected comment photo preview" />`;
         elements.removeNotePhotoButton.classList.remove("hidden");
       } else {
-        elements.notePhotoPreview.innerHTML = "<span>No note photo selected</span>";
+        elements.notePhotoPreview.innerHTML = "<span>No comment photo selected</span>";
         elements.removeNotePhotoButton.classList.add("hidden");
       }
     }
@@ -1542,9 +1873,16 @@
       state.serialContextItem = item;
       state.serialMode = "single";
       elements.serialForm.reset();
-      elements.serialDialogSubtitle.textContent = `${item.name} · ${item.serialCount || 0} of ${item.quantity} serials registered`;
+      const combined = itemUsesCombinedLocation(item);
+      elements.serialDialogSubtitle.textContent = `${item.name} · ${item.serialCount || 0} of ${item.quantity} serials registered${combined ? " · using the combined item location" : ""}`;
       elements.serialDate.value = nowLocalInputValue();
-      buildLocationFields(elements.serialLocationBuilder, "serialLocation", { site: "EC5", subLocation: "Shared Space" });
+      elements.serialLocationField.classList.toggle("hidden", combined);
+      elements.serialInheritedLocation.classList.toggle("hidden", !combined);
+      if (combined) {
+        elements.serialInheritedLocation.innerHTML = combinedLocationBannerHtml(item, "Inherited location for new serials");
+      } else {
+        buildLocationFields(elements.serialLocationBuilder, "serialLocation", { site: "EC5", subLocation: "Shared Space" });
+      }
       setSerialMode("single");
       setInlineMessage(elements.serialFormMessage);
       elements.serialDialog.showModal();
@@ -1578,7 +1916,14 @@
       state.serialBeingEdited = serial;
       elements.renameSerialForm.reset();
       elements.renameSerialInput.value = serial.serialNumber;
-      buildLocationFields(elements.renameSerialLocationBuilder, "renameSerialLocation", serial.currentLocation || { site: "EC5", subLocation: "Shared Space" });
+      const combined = itemUsesCombinedLocation(item);
+      elements.renameSerialLocationField.classList.toggle("hidden", combined);
+      elements.renameSerialInheritedLocation.classList.toggle("hidden", !combined);
+      if (combined) {
+        elements.renameSerialInheritedLocation.innerHTML = combinedLocationBannerHtml(item, "Location controlled by the item");
+      } else {
+        buildLocationFields(elements.renameSerialLocationBuilder, "renameSerialLocation", serial.currentLocation || { site: "EC5", subLocation: "Shared Space" });
+      }
       elements.renameSerialStatus.value = serial.loan?.isLoaned ? "loaned" : "available";
       elements.renameSerialMemberName.value = serial.loan?.memberName || "";
       refreshSerialEditMemberField();
@@ -1592,6 +1937,10 @@
       const item = findItem(itemId);
       const serial = findSerial(itemId, serialId);
       if (!item || !serial) return;
+      if (action === "move" && itemUsesCombinedLocation(item)) {
+        toast("Move the item instead", "This serial uses the combined item location. Edit the item to move all of its serials together.", "info");
+        return;
+      }
       state.actionContext = { action, item, serial };
       elements.actionForm.reset();
       elements.moveFields.classList.toggle("hidden", action !== "move");
@@ -1614,7 +1963,8 @@
         elements.actionDialogTitle.textContent = "Return serial number";
         elements.actionDialogSubtitle.textContent = `${item.name} · ${serial.serialNumber} · currently with ${serial.loan?.memberName || "member"}`;
         elements.saveActionButton.textContent = "Record return";
-        buildLocationFields(elements.returnLocationBuilder, "returnLocation", serial.currentLocation);
+        const returnLocation = itemUsesCombinedLocation(item) ? item.combinedLocation : serial.currentLocation;
+        buildLocationFields(elements.returnLocationBuilder, "returnLocation", returnLocation, itemUsesCombinedLocation(item));
       }
       elements.actionDialog.showModal();
     }
@@ -1624,10 +1974,10 @@
       const note = findNote(itemId, noteId);
       if (!item || !note) return;
       state.confirmAction = { type: "delete-note", item, note };
-      elements.confirmTitle.textContent = "Delete item note";
-      elements.confirmText.textContent = `Delete this note from “${item.name}”? Its text and attached photo will be removed, and a note-removal ticket will remain in the activity log.`;
+      elements.confirmTitle.textContent = "Delete item comment";
+      elements.confirmText.textContent = `Delete this comment from “${item.name}”? Its text and attached photo will be removed, and a comment-removal ticket will remain in the activity log.`;
       elements.confirmDateField.classList.add("hidden");
-      elements.confirmButton.textContent = "Delete note";
+      elements.confirmButton.textContent = "Delete comment";
       setInlineMessage(elements.confirmMessage);
       elements.confirmDialog.showModal();
     }
@@ -1635,7 +1985,7 @@
     function requestDeleteItem(item) {
       state.confirmAction = { type: "delete-item", item };
       elements.confirmTitle.textContent = "Delete equipment item";
-      elements.confirmText.textContent = `Delete “${item.name}”, its active serial records, and its item notes with attached photos? Historical activity tickets will be preserved for audit purposes. This cannot be undone.`;
+      elements.confirmText.textContent = `Delete “${item.name}”, its active serial records, and its item comments with attached photos? Historical activity tickets will be preserved for audit purposes. This cannot be undone.`;
       elements.confirmDateField.classList.add("hidden");
       elements.confirmButton.textContent = "Delete item";
       setInlineMessage(elements.confirmMessage);
@@ -1694,7 +2044,7 @@
         : scope === "project"
           ? `${items.length} item${items.length === 1 ? "" : "s"} in project ${elements.pdfProject.value}`
           : `${items.length} item${items.length === 1 ? "" : "s"} in category ${elements.pdfCategory.value}`;
-      elements.pdfSummary.textContent = `${description}. The PDF contains an overview table with item photos, followed by serial-number tables and dated item-note tables with note photos.`;
+      elements.pdfSummary.textContent = `${description}. The PDF contains an overview table with item photos, tags, locations, serial-number tables, and dated item-comment tables with comment photos.`;
     }
 
     function pdfImageFormat(dataUrl) {
@@ -1740,9 +2090,11 @@
         project: item.projectName || "",
         category: item.itemType || "",
         item: item.name || "",
+        tags: normalizeTags(item.tags).join(", "),
         quantity: String(item.quantity || 0),
         serials: String(item.serials?.length || 0),
-        notes: String(item.notes?.length || 0),
+        comments: String(item.notes?.length || 0),
+        location: itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per serial number",
         comment: item.comment || "",
         itemPhoto: item.photoBase64 || "",
       }));
@@ -1754,10 +2106,12 @@
           { header: "Project", dataKey: "project" },
           { header: "Category", dataKey: "category" },
           { header: "Item", dataKey: "item" },
+          { header: "Tags", dataKey: "tags" },
           { header: "Qty", dataKey: "quantity" },
+          { header: "Location", dataKey: "location" },
           { header: "Serials", dataKey: "serials" },
-          { header: "Notes", dataKey: "notes" },
-          { header: "Item comment", dataKey: "comment" },
+          { header: "Comments", dataKey: "comments" },
+          { header: "Main comment", dataKey: "comment" },
         ],
         body: overviewRows,
         theme: "grid",
@@ -1768,10 +2122,12 @@
           photo: { cellWidth: 23, minCellHeight: 20 },
           project: { cellWidth: 20 },
           category: { cellWidth: 21 },
-          item: { cellWidth: 40 },
+          item: { cellWidth: 34 },
+          tags: { cellWidth: 35 },
           quantity: { cellWidth: 12, halign: "center" },
+          location: { cellWidth: 42 },
           serials: { cellWidth: 14, halign: "center" },
-          notes: { cellWidth: 12, halign: "center" },
+          comments: { cellWidth: 15, halign: "center" },
           comment: { cellWidth: "auto" },
         },
         didParseCell(data) {
@@ -1795,16 +2151,20 @@
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8.5);
         doc.setTextColor(66, 108, 119);
-        doc.text(`${item.projectName} · ${item.itemType} · Quantity ${item.quantity || 0}`, margin, y + 6);
-        const commentLines = doc.splitTextToSize(item.comment || "No item comment.", pageWidth - margin * 2 - 48);
+        const itemLocationText = itemUsesCombinedLocation(item) ? `Combined location: ${formatLocation(item.combinedLocation)}` : "Location tracking: per serial number";
+        doc.text(`${item.projectName} · ${item.itemType} · Quantity ${item.quantity || 0} · ${itemLocationText}`, margin, y + 6);
+        const tagLines = doc.splitTextToSize(`Tags: ${normalizeTags(item.tags).join(", ") || "None"}`, pageWidth - margin * 2 - 48);
+        doc.text(tagLines, margin, y + 11);
+        const commentStartY = y + 16 + Math.max(0, tagLines.length - 1) * 4;
+        const commentLines = doc.splitTextToSize(item.comment || "No main item comment.", pageWidth - margin * 2 - 48);
         doc.setTextColor(40, 82, 96);
-        doc.text(commentLines, margin, y + 13);
+        doc.text(commentLines, margin, commentStartY);
         if (item.photoBase64) addPdfImage(doc, item.photoBase64, pageWidth - margin - 42, y - 2, 42, 30);
-        y = Math.max(y + 18 + commentLines.length * 4, 48);
+        y = Math.max(commentStartY + 5 + commentLines.length * 4, 52);
 
         const serialRows = (item.serials || []).map((serial) => ({
           serial: serial.serialNumber || "",
-          location: formatLocation(serial.currentLocation),
+          location: formatLocation(itemUsesCombinedLocation(item) ? item.combinedLocation : serial.currentLocation),
           status: serial.loan?.isLoaned ? "Lent" : "Available",
           member: serial.loan?.memberName || "",
         }));
@@ -1833,11 +2193,11 @@
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(8, 24, 32);
-        doc.text("Item notes", margin, y);
+        doc.text("Item comments", margin, y);
         const noteRows = (item.notes || []).map((note) => ({
           photo: "",
           date: formatDateTime(note.noteDate || note.createdAt),
-          note: note.text || "Photo-only note",
+          comment: note.text || "Photo-only comment",
           notePhoto: note.photoBase64 || "",
         }));
         doc.autoTable({
@@ -1845,14 +2205,14 @@
           columns: [
             { header: "Photo", dataKey: "photo" },
             { header: "Date", dataKey: "date" },
-            { header: "Note", dataKey: "note" },
+            { header: "Comment", dataKey: "comment" },
           ],
-          body: noteRows.length ? noteRows : [{ photo: "", date: "", note: "No item notes", notePhoto: "" }],
+          body: noteRows.length ? noteRows : [{ photo: "", date: "", comment: "No item comments", notePhoto: "" }],
           theme: "grid",
           margin: { left: margin, right: margin },
           styles: { fontSize: 7.5, cellPadding: 2, valign: "middle", overflow: "linebreak" },
           headStyles: { fillColor: [0, 139, 139], textColor: 255 },
-          columnStyles: { photo: { cellWidth: 30, minCellHeight: 25 }, date: { cellWidth: 42 }, note: { cellWidth: "auto" } },
+          columnStyles: { photo: { cellWidth: 30, minCellHeight: 25 }, date: { cellWidth: 42 }, comment: { cellWidth: "auto" } },
           didParseCell(data) {
             if (data.section === "body" && data.column.dataKey === "photo" && data.row.raw.notePhoto) data.cell.styles.minCellHeight = 25;
           },
@@ -1878,8 +2238,9 @@
 
     function downloadCsv(rows) {
       const columns = [
-        ["Project", "projectName"], ["Item Type", "itemType"], ["Item", "itemName"], ["Quantity", "quantity"],
-        ["Comment", "comment"], ["Serial Number", "serialNumber"], ["Location", "location"], ["Status", "lendingStatus"], ["Member", "memberName"],
+        ["Project", "projectName"], ["Item Type", "itemType"], ["Item", "itemName"], ["Tags", "tags"], ["Quantity", "quantity"],
+        ["Location Tracking", "locationMode"], ["Combined Item Location", "combinedLocation"], ["Main Comment", "comment"], ["Comment Count", "commentCount"],
+        ["Serial Number", "serialNumber"], ["Effective Location", "location"], ["Status", "lendingStatus"], ["Member", "memberName"],
       ];
       const quote = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
       const csv = [columns.map(([label]) => quote(label)).join(","), ...rows.map((row) => columns.map(([, key]) => quote(row[key])).join(","))].join("\r\n");
@@ -1891,6 +2252,37 @@
       link.click();
       URL.revokeObjectURL(link.href);
       link.remove();
+    }
+
+    function buildCsvRowsFromReport(items) {
+      const rows = [];
+      items.forEach((item) => {
+        const combined = itemUsesCombinedLocation(item);
+        const serials = item.serials || [];
+        const base = {
+          projectName: item.projectName || "",
+          itemType: item.itemType || "",
+          itemName: item.name || "",
+          tags: normalizeTags(item.tags).join(", "),
+          quantity: item.quantity || 0,
+          locationMode: combined ? "Combined item location" : "Per serial number",
+          combinedLocation: combined ? formatLocation(item.combinedLocation) : "",
+          comment: item.comment || "",
+          commentCount: (item.notes || []).length,
+        };
+        if (serials.length === 0) {
+          rows.push({ ...base, serialNumber: "", location: combined ? formatLocation(item.combinedLocation) : "", lendingStatus: "Unregistered", memberName: "" });
+          return;
+        }
+        serials.forEach((serial) => rows.push({
+          ...base,
+          serialNumber: serial.serialNumber || "",
+          location: formatLocation(combined ? item.combinedLocation : serial.currentLocation),
+          lendingStatus: serial.loan?.isLoaned ? "Lent" : "Available",
+          memberName: serial.loan?.memberName || "",
+        }));
+      });
+      return rows;
     }
 
     async function startDataSubscriptions() {
@@ -1971,6 +2363,7 @@
     });
 
     elements.addItemButton.addEventListener("click", () => openItemDialog());
+    elements.itemLocationMode.addEventListener("change", refreshItemLocationMode);
     elements.pdfButton.addEventListener("click", openPdfDialog);
     elements.searchInput.addEventListener("input", renderInventory);
     elements.projectFilter.addEventListener("change", renderInventory);
@@ -2002,7 +2395,7 @@
     elements.notePhoto.addEventListener("change", async () => {
       const file = elements.notePhoto.files?.[0];
       if (!file) return;
-      setInlineMessage(elements.noteFormMessage, "Compressing note photo…", "info");
+      setInlineMessage(elements.noteFormMessage, "Compressing comment photo…", "info");
       try {
         state.notePhotoBase64 = await compressImage(file);
         state.removeCurrentNotePhoto = false;
@@ -2035,10 +2428,10 @@
       try {
         if (state.noteBeingEdited) {
           const changed = await updateItemNote(item, state.noteBeingEdited, payload, state.user);
-          toast("Note saved", changed ? "The note text, photo, or date was updated." : "No note changes were required.");
+          toast("Comment saved", changed ? "The comment text, photo, or date was updated." : "No comment changes were required.");
         } else {
           await createItemNote(item, payload, state.user);
-          toast("Note added", `A dated note was added to ${item.name}.`);
+          toast("Comment added", `A dated comment was added to ${item.name}.`);
         }
         elements.noteDialog.close();
       } catch (error) {
@@ -2050,10 +2443,19 @@
 
     elements.itemForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+      const locationMode = elements.itemLocationMode.value === "combined" ? "combined" : "serial";
+      let combinedLocation = null;
+      try {
+        if (locationMode === "combined") combinedLocation = validateLocationForHtml(readLocation(elements.itemCombinedLocationBuilder, "itemCombinedLocation"));
+      } catch (error) {
+        setInlineMessage(elements.itemFormMessage, firebaseErrorMessage(error), "error");
+        return;
+      }
       const payload = {
         projectName: elements.itemProject.value,
         itemType: elements.itemType.value,
         name: elements.itemName.value,
+        tags: normalizeTags(elements.itemTags.value),
         quantity: elements.itemQuantity.value,
         comment: elements.itemComment.value,
       };
@@ -2064,11 +2466,16 @@
       setInlineMessage(elements.itemFormMessage);
       try {
         if (state.itemBeingEdited) {
-          await updateEquipmentRecord(state.itemBeingEdited, payload, state.user);
-          toast("Item updated", `${payload.name} was saved.`);
+          const previousItem = state.itemBeingEdited;
+          await updateEquipmentRecord(previousItem, payload, state.user);
+          await saveItemLocationSettings(previousItem.id, previousItem, { ...previousItem, ...payload }, locationMode, combinedLocation);
+          await saveItemTags(previousItem.id, previousItem, { ...previousItem, ...payload }, payload.tags);
+          toast("Item updated", `${payload.name} was saved with ${payload.tags.length} search tag${payload.tags.length === 1 ? "" : "s"}${locationMode === "combined" ? " and one combined location" : " and serial-level locations"}.`);
         } else {
-          await createEquipment(payload, state.user);
-          toast("Item created", `${payload.name} was added. Expand it to register serial numbers.`);
+          const itemId = await createEquipment(payload, state.user);
+          await saveItemLocationSettings(itemId, null, { id: itemId, ...payload }, locationMode, combinedLocation);
+          await saveItemTags(itemId, null, { id: itemId, ...payload }, payload.tags);
+          toast("Item created", `${payload.name} was added with ${payload.tags.length} search tag${payload.tags.length === 1 ? "" : "s"}${locationMode === "combined" ? " and a combined item location" : " and serial-level locations"}. Expand it to register serial numbers and comments.`);
         }
         elements.itemDialog.close();
       } catch (error) {
@@ -2085,7 +2492,9 @@
       event.preventDefault();
       const item = state.serialContextItem;
       const numbers = state.serialMode === "single" ? [elements.singleSerialInput.value.trim()].filter(Boolean) : parseBulkSerials(elements.bulkSerialInput.value);
-      const location = readLocation(elements.serialLocationBuilder, "serialLocation");
+      const location = itemUsesCombinedLocation(item)
+        ? item.combinedLocation
+        : readLocation(elements.serialLocationBuilder, "serialLocation");
       const entries = numbers.map((serialNumber) => ({ serialNumber, currentLocation: location }));
       elements.saveSerialButton.disabled = true;
       setInlineMessage(elements.serialFormMessage);
@@ -2111,7 +2520,9 @@
           state.serialBeingEdited,
           {
             serialNumber: elements.renameSerialInput.value,
-            currentLocation: readLocation(elements.renameSerialLocationBuilder, "renameSerialLocation"),
+            currentLocation: itemUsesCombinedLocation(state.serialContextItem)
+              ? state.serialContextItem.combinedLocation
+              : readLocation(elements.renameSerialLocationBuilder, "renameSerialLocation"),
             loan: {
               isLoaned: elements.renameSerialStatus.value === "loaned",
               memberName: elements.renameSerialMemberName.value,
@@ -2120,7 +2531,7 @@
           new Date(elements.renameSerialDate.value),
           state.user
         );
-        toast("Serial record saved", changed ? "The serial number, location, and status were updated and logged." : "No changes were required.");
+        toast("Serial record saved", changed ? (itemUsesCombinedLocation(state.serialContextItem) ? "The serial number and status were updated; location remains controlled by the item." : "The serial number, location, and status were updated and logged.") : "No changes were required.");
         if (state.selectedLogFilter?.serialId === state.serialBeingEdited.id) state.selectedLogFilter.serialNumber = elements.renameSerialInput.value.trim();
         elements.renameSerialDialog.close();
       } catch (error) {
@@ -2142,7 +2553,10 @@
           await lendSerialNumber(item, serial, elements.memberNameInput.value, date, state.user);
           toast("Lending recorded", `${serial.serialNumber} was lent to ${elements.memberNameInput.value.trim()}.`);
         } else {
-          await returnSerialNumber(item, serial, readLocation(elements.returnLocationBuilder, "returnLocation"), date, state.user);
+          const returnLocation = itemUsesCombinedLocation(item)
+            ? item.combinedLocation
+            : readLocation(elements.returnLocationBuilder, "returnLocation");
+          await returnSerialNumber(item, serial, returnLocation, date, state.user);
           toast("Return recorded", `${serial.serialNumber} was returned.`);
         }
         elements.actionDialog.close();
@@ -2161,13 +2575,13 @@
       setInlineMessage(elements.confirmMessage);
       try {
         if (action.type === "delete-item") {
-          setLoading(true, "Deleting item, serials, and notes…");
+          setLoading(true, "Deleting item, serials, and comments…");
           await deleteEquipmentRecord(action.item.id);
           state.selectedItems.delete(action.item.id);
-          toast("Item deleted", `${action.item.name}, its active serial records, and its item notes were deleted. Historical activity logs were preserved.`);
+          toast("Item deleted", `${action.item.name}, its active serial records, and its item comments were deleted. Historical activity logs were preserved.`);
         } else if (action.type === "delete-note") {
           await deleteItemNote(action.item, action.note, state.user);
-          toast("Note deleted", `The note and its attached photo were removed from ${action.item.name}.`);
+          toast("Comment deleted", `The comment and its attached photo were removed from ${action.item.name}.`);
         } else {
           await removeSerialNumber(action.item, action.serial, new Date(elements.confirmDate.value), state.user);
           toast("Serial removed", `${action.serial.serialNumber} was removed and logged.`);
@@ -2195,7 +2609,7 @@
       }
       elements.generatePdfButton.disabled = true;
       setInlineMessage(elements.pdfFormMessage);
-      setLoading(true, "Loading photos, notes, and serials for the PDF…");
+      setLoading(true, "Loading photos, comments, and serials for the PDF…");
       try {
         const data = await getInventoryReportData(scopedItems.map((item) => item.id));
         const scopeLabel = elements.pdfScope.value === "selection"
@@ -2205,7 +2619,7 @@
             : `category-${elements.pdfCategory.value}`;
         generateInventoryPdf(data, scopeLabel);
         elements.pdfDialog.close();
-        toast("PDF generated", `${data.length} item${data.length === 1 ? " was" : "s were"} included with item and note photos.`);
+        toast("PDF generated", `${data.length} item${data.length === 1 ? " was" : "s were"} included with item and comment photos.`);
       } catch (error) {
         setInlineMessage(elements.pdfFormMessage, firebaseErrorMessage(error), "error");
       } finally {
@@ -2217,7 +2631,8 @@
     elements.exportButton.addEventListener("click", async () => {
       setLoading(true, "Preparing inventory export…");
       try {
-        const rows = await getInventoryExportRows();
+        const reportItems = await getInventoryReportData(state.equipment.map((item) => item.id));
+        const rows = buildCsvRowsFromReport(reportItems);
         downloadCsv(rows);
         toast("Export ready", `${rows.length} inventory row${rows.length === 1 ? " was" : "s were"} exported.`);
       } catch (error) {
