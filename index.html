@@ -645,6 +645,51 @@
     .spinner { width: 20px; height: 20px; border: 3px solid var(--lab-200); border-top-color: var(--lab-700); border-radius: 50%; animation: spin .75s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .view-tabs {
+      display: inline-flex;
+      gap: .35rem;
+      margin-bottom: 1rem;
+      padding: .3rem;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: rgba(255,255,255,.86);
+      box-shadow: var(--shadow-soft);
+    }
+    .view-tab {
+      min-height: 38px;
+      border: 0;
+      border-radius: 9px;
+      padding: .55rem .9rem;
+      color: var(--ink-600);
+      background: transparent;
+      font-weight: 850;
+    }
+    .view-tab.active { color: #fff; background: var(--ink-900); }
+    .badge-healthy { color: var(--green-700); background: var(--green-100); }
+    .badge-unhealthy { color: var(--red-700); background: var(--red-100); }
+    .badge-unmarked { color: var(--amber-700); background: var(--amber-100); }
+    .health-summary { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+    .health-count-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .75rem; padding: .8rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+    .health-count-grid .field + .field { margin-top: 0; }
+    .health-count-summary { grid-column: span 2; padding: .65rem .7rem; border-radius: 10px; color: var(--ink-700); background: #fff; font-size: .78rem; line-height: 1.5; }
+    .experiments-shell { display: grid; gap: 1rem; }
+    .experiment-note { padding: .85rem 1rem; border: 1px solid var(--lab-200); border-radius: 13px; color: var(--ink-800); background: var(--lab-100); font-size: .82rem; line-height: 1.55; }
+    .experiment-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
+    .experiment-card { border: 1px solid var(--border); border-radius: 18px; background: rgba(255,255,255,.94); box-shadow: var(--shadow-soft); overflow: hidden; }
+    .experiment-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding: 1rem; border-bottom: 1px solid var(--border); }
+    .experiment-card h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.02em; }
+    .experiment-description { margin: .3rem 0 0; color: var(--ink-600); font-size: .78rem; line-height: 1.5; }
+    .experiment-requirements { display: grid; gap: .55rem; padding: .85rem 1rem; }
+    .experiment-requirement { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .8rem; align-items: center; padding: .7rem .75rem; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft); }
+    .experiment-requirement strong { display: block; font-size: .82rem; }
+    .experiment-requirement span { display: block; margin-top: .18rem; color: var(--ink-500); font-size: .7rem; line-height: 1.4; }
+    .requirement-result { text-align: right; font-size: .72rem; font-weight: 850; }
+    .experiment-card-footer { display: flex; justify-content: flex-end; gap: .45rem; padding: .75rem 1rem; border-top: 1px solid var(--border); background: #fff; }
+    .requirements-builder { display: grid; gap: .65rem; }
+    .requirement-row { display: grid; grid-template-columns: minmax(0,1fr) 120px 38px; gap: .55rem; align-items: end; padding: .7rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+    .requirement-row .field + .field { margin-top: 0; }
+    .requirement-row .button-icon { margin-bottom: 3px; }
+
     @media (max-width: 1080px) {
       .workspace { grid-template-columns: 1fr; }
       .activity-panel { position: static; max-height: 620px; }
@@ -676,6 +721,10 @@
       .note-card { grid-template-columns: 86px minmax(0, 1fr); }
       .note-photo { width: 86px; height: 76px; }
       .pdf-scope-grid { grid-template-columns: 1fr; }
+      .experiment-grid { grid-template-columns: 1fr; }
+      .requirement-row { grid-template-columns: 1fr 1fr 38px; }
+      .health-count-grid { grid-template-columns: 1fr; }
+      .health-count-summary { grid-column: auto; }
       .login-hero { padding: 1.5rem; min-height: auto; }
       .hero-copy { padding: 4rem 0; }
       .login-panel { padding: 2rem 1.25rem; min-height: auto; }
@@ -760,38 +809,59 @@
     </header>
 
     <main class="app-main">
-      <div class="page-heading">
-        <div><h1>Equipment inventory</h1><p>Item-level inventory with either one shared item location or independent serial locations, plus dated activity logs.</p></div>
-        <div class="heading-actions">
-          <span id="selectionCount" class="selection-summary hidden">0 selected</span>
-          <button id="pdfButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Generate PDF</button>
-          <button id="exportButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Export CSV</button>
-          <button id="addItemButton" class="button button-primary" type="button"><svg class="icon"><use href="#icon-plus"></use></svg> Add item</button>
-        </div>
-      </div>
+      <nav class="view-tabs" aria-label="Workspace sections">
+        <button id="inventoryTabButton" class="view-tab active" type="button">Inventory</button>
+        <button id="experimentsTabButton" class="view-tab" type="button">Experiments</button>
+      </nav>
 
-      <section class="summary-grid" aria-label="Inventory summary">
-        <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-list"></use></svg></div><div><span>Item records</span><strong id="summaryItems">0</strong></div></article>
-        <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-box"></use></svg></div><div><span>Total quantity</span><strong id="summaryQuantity">0</strong></div></article>
-        <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-hash"></use></svg></div><div><span>Registered serials</span><strong id="summarySerials">0</strong></div></article>
+      <section id="inventoryTabPanel">
+        <div class="page-heading">
+          <div><h1>Equipment inventory</h1><p>Track locations, comments, serials, and unit health either by serial number or by healthy/non-functional counts.</p></div>
+          <div class="heading-actions">
+            <span id="selectionCount" class="selection-summary hidden">0 selected</span>
+            <button id="pdfButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Generate PDF</button>
+            <button id="exportButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Export CSV</button>
+            <button id="addItemButton" class="button button-primary" type="button"><svg class="icon"><use href="#icon-plus"></use></svg> Add item</button>
+          </div>
+        </div>
+
+        <section class="summary-grid" aria-label="Inventory summary">
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-list"></use></svg></div><div><span>Item records</span><strong id="summaryItems">0</strong></div></article>
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-box"></use></svg></div><div><span>Total quantity</span><strong id="summaryQuantity">0</strong></div></article>
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-hash"></use></svg></div><div><span>Healthy units</span><strong id="summaryHealthy">0</strong></div></article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel inventory-panel">
+            <div class="panel-header"><div><h2>Equipment table</h2><p>Select items for reports, or expand a row to manage serials, health labels, and comments.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
+            <div class="toolbar">
+              <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search items, tags, comments, locations, or regex" title="Use spaces for multiple terms. Regular expressions are supported, for example aruba.*534 or /access\s+point/i." /><small class="search-regex-help">Spaces match multiple terms. Regex is supported, for example <code>aruba.*534</code> or <code>/access\s+point/i</code>.</small></div>
+              <select id="projectFilter" aria-label="Filter by project"><option value="">All projects</option><option>Apple</option><option>AQS</option><option>Rogers</option></select>
+              <select id="typeFilter" aria-label="Filter by item type"><option value="">All item types</option><option>Device</option><option>Component</option></select>
+            </div>
+            <div id="inventoryContent" class="table-wrap"></div>
+          </div>
+
+          <aside class="panel activity-panel" aria-label="Activity logs">
+            <div class="panel-header"><div><h2>Activity log</h2><p>Serial changes, health updates, item-location updates, and comments.</p></div></div>
+            <div class="activity-context"><strong id="activityContext">All recent activity</strong><button id="clearLogFilter" class="button button-ghost button-small hidden" type="button">Show all</button></div>
+            <div id="activityList" class="activity-list"></div>
+          </aside>
+        </section>
       </section>
 
-      <section class="workspace">
-        <div class="panel inventory-panel">
-          <div class="panel-header"><div><h2>Equipment table</h2><p>Select items for reports, or expand a row to manage serials and item comments with photos.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
-          <div class="toolbar">
-            <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search items, tags, comments, locations, or regex" title="Use spaces for multiple terms. Regular expressions are supported, for example aruba.*534 or /access\s+point/i." /><small class="search-regex-help">Spaces match multiple terms. Regex is supported, for example <code>aruba.*534</code> or <code>/access\s+point/i</code>.</small></div>
-            <select id="projectFilter" aria-label="Filter by project"><option value="">All projects</option><option>Apple</option><option>AQS</option><option>Rogers</option></select>
-            <select id="typeFilter" aria-label="Filter by item type"><option value="">All item types</option><option>Device</option><option>Component</option></select>
-          </div>
-          <div id="inventoryContent" class="table-wrap"></div>
+      <section id="experimentsTabPanel" class="hidden experiments-shell">
+        <div class="page-heading">
+          <div><h1>Experiments</h1><p>Define the exact healthy equipment required for an experiment and validate whether the inventory can support it.</p></div>
+          <div class="heading-actions"><button id="addExperimentButton" class="button button-primary" type="button"><svg class="icon"><use href="#icon-plus"></use></svg> Add experiment</button></div>
         </div>
-
-        <aside class="panel activity-panel" aria-label="Activity logs">
-          <div class="panel-header"><div><h2>Activity log</h2><p>Serial changes, item-location updates, and item-comment activity tickets.</p></div></div>
-          <div class="activity-context"><strong id="activityContext">All recent activity</strong><button id="clearLogFilter" class="button button-ghost button-small hidden" type="button">Show all</button></div>
-          <div id="activityList" class="activity-list"></div>
-        </aside>
+        <section class="summary-grid" aria-label="Experiment summary">
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-list"></use></svg></div><div><span>Experiments</span><strong id="summaryExperiments">0</strong></div></article>
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-box"></use></svg></div><div><span>Feasible</span><strong id="summaryFeasible">0</strong></div></article>
+          <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-hash"></use></svg></div><div><span>Not feasible</span><strong id="summaryInfeasible">0</strong></div></article>
+        </section>
+        <div class="experiment-note"><strong>Validation rule:</strong> every required unit must be labeled healthy. For serial-based health tracking, healthy serial records are counted. For count-based tracking, the saved healthy-unit count is used. Unmarked units do not qualify.</div>
+        <div id="experimentsContent"></div>
       </section>
     </main>
   </section>
@@ -807,6 +877,8 @@
           <div class="field span-2"><label for="itemTags">Search tags <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><input id="itemTags" maxlength="1500" placeholder="router, access point, Aruba, Wi-Fi 6, AP-534" /><small>Separate tags with commas. Spaces inside a tag are preserved, duplicates are removed, and tags are searchable with normal words or regular expressions.</small></div>
           <div class="field"><label for="itemQuantity">Quantity</label><input id="itemQuantity" type="number" min="1" max="10000" step="1" value="1" required /><small>Serial registrations cannot exceed this number.</small></div>
           <div class="field"><label>Photo</label><div class="photo-input-wrap"><div id="itemPhotoPreview" class="photo-preview"><span>No photo selected</span></div><div><input id="itemPhoto" type="file" accept="image/*" /><small>Images are compressed and stored as Base64. Maximum target size: 450 KB.</small><button id="removePhotoButton" class="button button-ghost button-small hidden" type="button">Remove photo</button></div></div></div>
+          <div class="field span-2"><label for="itemHealthMode">Unit health tracking</label><select id="itemHealthMode"><option value="serial">Mark health on each serial number</option><option value="count">Mark health by unit counts</option></select><div class="location-mode-help">Serial mode lets each registered serial be labeled Healthy, Not functional, or Unmarked. Count mode stores the total number of healthy and non-functional units without assigning the label to particular serials.</div></div>
+          <div id="itemCountHealthFields" class="field span-2 hidden"><label>Count-based health totals</label><div class="health-count-grid"><div class="field"><label for="itemHealthyCount">Healthy units</label><input id="itemHealthyCount" type="number" min="0" max="10000" step="1" value="1" /></div><div class="field"><label for="itemNonFunctionalCount">Not functional units</label><input id="itemNonFunctionalCount" type="number" min="0" max="10000" step="1" value="0" /></div><div id="itemHealthCountSummary" class="health-count-summary"></div></div></div>
           <div class="field span-2"><label for="itemLocationMode">Location tracking</label><select id="itemLocationMode"><option value="serial">Different location for each serial number</option><option value="combined">One combined location for the entire item</option></select><div class="location-mode-help">Use a combined location when all physical units are stored together. New serials inherit it automatically, and changing the item location updates the active serial records together.</div></div>
           <div id="itemCombinedLocationField" class="field span-2 hidden"><label>Combined item location</label><div id="itemCombinedLocationBuilder" class="location-builder"></div><small>The exact-location text inside the selected sub-location remains optional.</small></div>
           <div class="field span-2"><label for="itemComment">Main item comment <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><textarea id="itemComment" maxlength="4000" placeholder="Purpose, configuration summary, accessories, known limitations, or other item-level information"></textarea><small>Additional dated comments can be added after saving. Every additional comment may include its own photo.</small></div>
@@ -824,6 +896,7 @@
         <div class="field"><label>Entry mode</label><div class="segmented"><button id="singleSerialMode" class="active" type="button">One serial</button><button id="bulkSerialMode" type="button">Bulk list</button></div></div>
         <div id="singleSerialFields" class="field"><label for="singleSerialInput">Serial number</label><input id="singleSerialInput" maxlength="160" placeholder="Enter one serial number" /></div>
         <div id="bulkSerialFields" class="field hidden"><label for="bulkSerialInput">Serial numbers</label><textarea id="bulkSerialInput" placeholder="SN-001, SN-002, SN-003"></textarea><small>Separate values with commas, semicolons, tabs, spaces, or new lines.</small></div>
+        <div id="serialHealthField" class="field"><label for="serialHealthStatus">Health label for new serials</label><select id="serialHealthStatus"><option value="healthy">Healthy</option><option value="nonfunctional">Not functional</option><option value="unknown">Unmarked</option></select><small>This label is used by experiment feasibility validation when this item tracks health by serial number.</small></div>
         <div id="serialInheritedLocation" class="combined-location-banner hidden"></div>
         <div id="serialLocationField" class="field"><label>Initial location for these serials</label><div id="serialLocationBuilder" class="location-builder"></div></div>
         <div class="field"><label for="serialDate">Registration date</label><input id="serialDate" type="datetime-local" required /></div>
@@ -840,6 +913,7 @@
         <div class="field"><label for="renameSerialInput">Serial number</label><input id="renameSerialInput" maxlength="160" required /></div>
         <div id="renameSerialInheritedLocation" class="combined-location-banner hidden"></div>
         <div id="renameSerialLocationField" class="field"><label>Current location</label><div id="renameSerialLocationBuilder" class="location-builder"></div></div>
+        <div id="renameSerialHealthField" class="field"><label for="renameSerialHealthStatus">Unit health</label><select id="renameSerialHealthStatus"><option value="healthy">Healthy</option><option value="nonfunctional">Not functional</option><option value="unknown">Unmarked</option></select></div>
         <div class="field"><label for="renameSerialStatus">Current status</label><select id="renameSerialStatus"><option value="available">Available</option><option value="loaned">Lent to a member</option></select></div>
         <div id="renameSerialMemberField" class="field hidden"><label for="renameSerialMemberName">Member name</label><input id="renameSerialMemberName" maxlength="160" placeholder="Name of member holding this serial" /></div>
         <div class="field"><label for="renameSerialDate">Effective date</label><input id="renameSerialDate" type="datetime-local" required /></div>
@@ -895,6 +969,19 @@
     </form>
   </dialog>
 
+  <dialog id="experimentDialog">
+    <form id="experimentForm" method="dialog">
+      <div class="dialog-header"><div><h2 id="experimentDialogTitle">Add experiment</h2><p>List every equipment item and healthy quantity required.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="experimentDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div class="field"><label for="experimentName">Experiment name</label><input id="experimentName" maxlength="180" placeholder="Example: Indoor Wi-Fi mobility run" required /></div>
+        <div class="field"><label for="experimentDescription">Description <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><textarea id="experimentDescription" maxlength="3000" placeholder="Purpose, setup notes, or scheduling context"></textarea></div>
+        <div class="field"><label>Required healthy equipment</label><div id="experimentRequirements" class="requirements-builder"></div><button id="addRequirementButton" class="button button-secondary button-small" type="button" style="margin-top:.65rem"><svg class="icon"><use href="#icon-plus"></use></svg> Add required item</button><small>Each equipment item may appear once. Required quantity must be at least one.</small></div>
+        <div id="experimentFormMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="experimentDialog">Cancel</button><button id="saveExperimentButton" class="button button-primary" type="submit">Save experiment</button></div>
+    </form>
+  </dialog>
+
   <dialog id="confirmDialog">
     <form id="confirmForm" method="dialog">
       <div class="dialog-header"><div><h2 id="confirmTitle">Confirm action</h2></div><button class="button button-ghost button-icon" type="button" data-close-dialog="confirmDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
@@ -938,6 +1025,7 @@
     import {
       get,
       getDatabase,
+      onValue,
       push,
       ref,
       serverTimestamp,
@@ -952,6 +1040,7 @@
     const state = {
       user: null,
       equipment: [],
+      experiments: [],
       logs: [],
       serialsByItem: new Map(),
       serialSubscriptions: new Map(),
@@ -972,7 +1061,10 @@
       notePhotoBase64: "",
       removeCurrentNotePhoto: false,
       serialMode: "single",
+      activeTab: "inventory",
+      experimentBeingEdited: null,
       equipmentUnsubscribe: null,
+      experimentsUnsubscribe: null,
       logsUnsubscribe: null,
     };
 
@@ -989,7 +1081,12 @@
       logoutButton: $("#logoutButton"),
       userName: $("#userName"),
       userEmail: $("#userEmail"),
+      inventoryTabButton: $("#inventoryTabButton"),
+      experimentsTabButton: $("#experimentsTabButton"),
+      inventoryTabPanel: $("#inventoryTabPanel"),
+      experimentsTabPanel: $("#experimentsTabPanel"),
       addItemButton: $("#addItemButton"),
+      addExperimentButton: $("#addExperimentButton"),
       pdfButton: $("#pdfButton"),
       exportButton: $("#exportButton"),
       selectionCount: $("#selectionCount"),
@@ -1000,7 +1097,11 @@
       resultCount: $("#resultCount"),
       summaryItems: $("#summaryItems"),
       summaryQuantity: $("#summaryQuantity"),
-      summarySerials: $("#summarySerials"),
+      summaryHealthy: $("#summaryHealthy"),
+      summaryExperiments: $("#summaryExperiments"),
+      summaryFeasible: $("#summaryFeasible"),
+      summaryInfeasible: $("#summaryInfeasible"),
+      experimentsContent: $("#experimentsContent"),
       activityList: $("#activityList"),
       activityContext: $("#activityContext"),
       clearLogFilter: $("#clearLogFilter"),
@@ -1012,6 +1113,11 @@
       itemName: $("#itemName"),
       itemTags: $("#itemTags"),
       itemQuantity: $("#itemQuantity"),
+      itemHealthMode: $("#itemHealthMode"),
+      itemCountHealthFields: $("#itemCountHealthFields"),
+      itemHealthyCount: $("#itemHealthyCount"),
+      itemNonFunctionalCount: $("#itemNonFunctionalCount"),
+      itemHealthCountSummary: $("#itemHealthCountSummary"),
       itemPhoto: $("#itemPhoto"),
       itemPhotoPreview: $("#itemPhotoPreview"),
       removePhotoButton: $("#removePhotoButton"),
@@ -1030,6 +1136,8 @@
       bulkSerialFields: $("#bulkSerialFields"),
       singleSerialInput: $("#singleSerialInput"),
       bulkSerialInput: $("#bulkSerialInput"),
+      serialHealthField: $("#serialHealthField"),
+      serialHealthStatus: $("#serialHealthStatus"),
       serialInheritedLocation: $("#serialInheritedLocation"),
       serialLocationField: $("#serialLocationField"),
       serialLocationBuilder: $("#serialLocationBuilder"),
@@ -1039,6 +1147,8 @@
       renameSerialDialog: $("#renameSerialDialog"),
       renameSerialForm: $("#renameSerialForm"),
       renameSerialInput: $("#renameSerialInput"),
+      renameSerialHealthField: $("#renameSerialHealthField"),
+      renameSerialHealthStatus: $("#renameSerialHealthStatus"),
       renameSerialInheritedLocation: $("#renameSerialInheritedLocation"),
       renameSerialLocationField: $("#renameSerialLocationField"),
       renameSerialLocationBuilder: $("#renameSerialLocationBuilder"),
@@ -1082,6 +1192,15 @@
       pdfSummary: $("#pdfSummary"),
       pdfFormMessage: $("#pdfFormMessage"),
       generatePdfButton: $("#generatePdfButton"),
+      experimentDialog: $("#experimentDialog"),
+      experimentForm: $("#experimentForm"),
+      experimentDialogTitle: $("#experimentDialogTitle"),
+      experimentName: $("#experimentName"),
+      experimentDescription: $("#experimentDescription"),
+      experimentRequirements: $("#experimentRequirements"),
+      addRequirementButton: $("#addRequirementButton"),
+      experimentFormMessage: $("#experimentFormMessage"),
+      saveExperimentButton: $("#saveExperimentButton"),
       confirmDialog: $("#confirmDialog"),
       confirmForm: $("#confirmForm"),
       confirmTitle: $("#confirmTitle"),
@@ -1185,9 +1304,12 @@
         item.projectName,
         item.itemType,
         item.comment,
+        itemHealthMode(item),
+        `${itemHealthStats(item).healthy} healthy`,
+        `${itemHealthStats(item).nonfunctional} not functional`,
         ...normalizeTags(item.tags),
         formatLocation(item.combinedLocation),
-        ...serials.flatMap((serial) => [serial.serialNumber, formatLocation(serial.currentLocation), serial.loan?.memberName]),
+        ...serials.flatMap((serial) => [serial.serialNumber, formatLocation(serial.currentLocation), serial.loan?.memberName, healthStatusLabel(serial.healthStatus)]),
         ...notes.map((note) => note.text),
       ].filter(Boolean).map((value) => String(value));
       const variants = values.flatMap((value) => {
@@ -1201,6 +1323,46 @@
 
     function itemUsesCombinedLocation(item) {
       return item?.locationMode === "combined" && Boolean(item?.combinedLocation?.site);
+    }
+
+    function itemHealthMode(item) {
+      return item?.healthMode === "count" ? "count" : "serial";
+    }
+
+    function normalizeHealthStatus(value) {
+      return value === "healthy" || value === "nonfunctional" ? value : "unknown";
+    }
+
+    function healthStatusLabel(value) {
+      const status = normalizeHealthStatus(value);
+      return status === "healthy" ? "Healthy" : status === "nonfunctional" ? "Not functional" : "Unmarked";
+    }
+
+    function healthBadgeHtml(value) {
+      const status = normalizeHealthStatus(value);
+      const badgeClass = status === "healthy" ? "badge-healthy" : status === "nonfunctional" ? "badge-unhealthy" : "badge-unmarked";
+      return `<span class="badge ${badgeClass}">${escapeHtml(healthStatusLabel(status))}</span>`;
+    }
+
+    function itemHealthStats(item) {
+      const quantity = Math.max(0, Number(item?.quantity || 0));
+      if (itemHealthMode(item) === "count") {
+        const healthy = Math.max(0, Math.min(quantity, Number(item?.healthyCount || 0)));
+        const nonfunctional = Math.max(0, Math.min(quantity - healthy, Number(item?.nonFunctionalCount || 0)));
+        return { mode: "count", healthy, nonfunctional, unknown: Math.max(0, quantity - healthy - nonfunctional), quantity, loaded: true };
+      }
+      const serials = Array.isArray(item?.serials) ? item.serials : state.serialsByItem.get(item?.id);
+      if (!serials) return { mode: "serial", healthy: 0, nonfunctional: 0, unknown: quantity, quantity, loaded: false };
+      const healthy = serials.filter((serial) => normalizeHealthStatus(serial.healthStatus) === "healthy").length;
+      const nonfunctional = serials.filter((serial) => normalizeHealthStatus(serial.healthStatus) === "nonfunctional").length;
+      return { mode: "serial", healthy, nonfunctional, unknown: Math.max(0, quantity - healthy - nonfunctional), quantity, loaded: true };
+    }
+
+    function itemHealthSummaryHtml(item, compact = false) {
+      const stats = itemHealthStats(item);
+      const modeText = stats.mode === "count" ? "count based" : "serial based";
+      if (compact) return `<div class="health-summary"><span class="badge badge-healthy">${stats.healthy} healthy</span>${stats.nonfunctional ? `<span class="badge badge-unhealthy">${stats.nonfunctional} not functional</span>` : ""}${stats.unknown ? `<span class="badge badge-unmarked">${stats.unknown} unmarked</span>` : ""}</div>`;
+      return `<div class="health-summary"><span class="badge badge-healthy">${stats.healthy} healthy</span><span class="badge badge-unhealthy">${stats.nonfunctional} not functional</span><span class="badge badge-unmarked">${stats.unknown} unmarked</span><span class="location-sub">${modeText}</span></div>`;
     }
 
     function validateLocationForHtml(location) {
@@ -1331,6 +1493,123 @@
 
       await update(ref(htmlDb), writes);
       return changed;
+    }
+
+    async function saveItemHealthSettings(itemId, previousItem, nextItem, healthMode, healthyCount, nonFunctionalCount) {
+      const mode = healthMode === "count" ? "count" : "serial";
+      const quantity = Math.max(1, Number(nextItem.quantity || 1));
+      let healthy = null;
+      let nonfunctional = null;
+      if (mode === "count") {
+        healthy = Number(healthyCount);
+        nonfunctional = Number(nonFunctionalCount);
+        if (!Number.isInteger(healthy) || healthy < 0) throw new Error("Healthy units must be a whole number of zero or more.");
+        if (!Number.isInteger(nonfunctional) || nonfunctional < 0) throw new Error("Not-functional units must be a whole number of zero or more.");
+        if (healthy + nonfunctional !== quantity) throw new Error(`Healthy and not-functional counts must total the item quantity (${quantity}).`);
+      }
+      const previousMode = itemHealthMode(previousItem);
+      const changed = !previousItem || previousMode !== mode || Number(previousItem?.healthyCount || 0) !== Number(healthy || 0) || Number(previousItem?.nonFunctionalCount || 0) !== Number(nonfunctional || 0);
+      const writes = {
+        [`${TRACKER_ROOT}/equipment/${itemId}/healthMode`]: mode,
+        [`${TRACKER_ROOT}/equipment/${itemId}/healthyCount`]: mode === "count" ? healthy : null,
+        [`${TRACKER_ROOT}/equipment/${itemId}/nonFunctionalCount`]: mode === "count" ? nonfunctional : null,
+        [`${TRACKER_ROOT}/equipment/${itemId}/updatedAt`]: serverTimestamp(),
+        [`${TRACKER_ROOT}/equipment/${itemId}/updatedBy`]: firebaseUserStamp(),
+      };
+      if (previousItem && changed) {
+        const logId = push(ref(htmlDb, `${TRACKER_ROOT}/activityLogs`)).key;
+        writes[`${TRACKER_ROOT}/activityLogs/${logId}`] = {
+          itemId,
+          itemName: nextItem.name,
+          projectName: nextItem.projectName,
+          itemType: nextItem.itemType,
+          serialId: "",
+          serialNumber: "",
+          actionType: "Health tracking changed",
+          occurredAt: Date.now(),
+          loggedAt: serverTimestamp(),
+          actorUid: state.user.uid,
+          actorEmail: state.user.email || "",
+          details: {
+            previousMode,
+            nextMode: mode,
+            previousHealthyCount: previousItem?.healthyCount ?? null,
+            previousNonFunctionalCount: previousItem?.nonFunctionalCount ?? null,
+            nextHealthyCount: healthy,
+            nextNonFunctionalCount: nonfunctional,
+          },
+        };
+      }
+      await update(ref(htmlDb), writes);
+      return changed;
+    }
+
+    async function saveSerialHealthStatus(item, serial, nextStatus, occurredAt = new Date()) {
+      if (!item || !serial) throw new Error("Serial record is unavailable.");
+      const status = normalizeHealthStatus(nextStatus);
+      const previousStatus = normalizeHealthStatus(serial.healthStatus);
+      if (previousStatus === status) return false;
+      const writes = {
+        [`${TRACKER_ROOT}/serials/${item.id}/${serial.id}/healthStatus`]: status,
+        [`${TRACKER_ROOT}/serials/${item.id}/${serial.id}/updatedAt`]: serverTimestamp(),
+        [`${TRACKER_ROOT}/serials/${item.id}/${serial.id}/updatedBy`]: firebaseUserStamp(),
+      };
+      const logId = push(ref(htmlDb, `${TRACKER_ROOT}/activityLogs`)).key;
+      writes[`${TRACKER_ROOT}/activityLogs/${logId}`] = {
+        itemId: item.id,
+        itemName: item.name,
+        projectName: item.projectName,
+        itemType: item.itemType,
+        serialId: serial.id,
+        serialNumber: serial.serialNumber || "",
+        actionType: "Health changed",
+        occurredAt: occurredAt instanceof Date ? occurredAt.getTime() : Date.now(),
+        loggedAt: serverTimestamp(),
+        actorUid: state.user.uid,
+        actorEmail: state.user.email || "",
+        details: { previousHealthStatus: previousStatus, nextHealthStatus: status },
+      };
+      await update(ref(htmlDb), writes);
+      return true;
+    }
+
+    async function setNewSerialHealthByNumbers(item, numbers, nextStatus, occurredAt = new Date()) {
+      if (itemHealthMode(item) !== "serial") return;
+      const wanted = new Set(numbers.map((number) => String(number).trim()).filter(Boolean));
+      if (wanted.size === 0) return;
+      const snapshot = await get(ref(htmlDb, `${TRACKER_ROOT}/serials/${item.id}`));
+      const serialMap = snapshot.val() || {};
+      const writes = {};
+      Object.entries(serialMap).forEach(([serialId, serial]) => {
+        if (!wanted.has(String(serial?.serialNumber || "").trim())) return;
+        writes[`${TRACKER_ROOT}/serials/${item.id}/${serialId}/healthStatus`] = normalizeHealthStatus(nextStatus);
+        writes[`${TRACKER_ROOT}/serials/${item.id}/${serialId}/updatedAt`] = serverTimestamp();
+        writes[`${TRACKER_ROOT}/serials/${item.id}/${serialId}/updatedBy`] = firebaseUserStamp();
+      });
+      if (Object.keys(writes).length) await update(ref(htmlDb), writes);
+    }
+
+    function refreshItemHealthMode(resetCounts = false) {
+      const countMode = elements.itemHealthMode.value === "count";
+      elements.itemCountHealthFields.classList.toggle("hidden", !countMode);
+      if (countMode && resetCounts) {
+        elements.itemHealthyCount.value = Math.max(0, Number(elements.itemQuantity.value || 1));
+        elements.itemNonFunctionalCount.value = 0;
+      }
+      refreshItemHealthCountSummary();
+    }
+
+    function refreshItemHealthCountSummary() {
+      const quantity = Math.max(0, Number(elements.itemQuantity.value || 0));
+      const healthy = Math.max(0, Number(elements.itemHealthyCount.value || 0));
+      const nonfunctional = Math.max(0, Number(elements.itemNonFunctionalCount.value || 0));
+      const total = healthy + nonfunctional;
+      const remaining = quantity - total;
+      elements.itemHealthCountSummary.textContent = total === quantity
+        ? `${healthy} healthy + ${nonfunctional} not functional = ${quantity} total units.`
+        : remaining > 0
+          ? `${remaining} unit${remaining === 1 ? " is" : "s are"} still unassigned. The two counts must total ${quantity}.`
+          : `The health counts exceed quantity by ${Math.abs(remaining)}. The two counts must total ${quantity}.`;
     }
 
     function refreshItemLocationMode() {
@@ -1481,7 +1760,7 @@
     function renderSummary() {
       elements.summaryItems.textContent = state.equipment.length.toLocaleString();
       elements.summaryQuantity.textContent = state.equipment.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString();
-      elements.summarySerials.textContent = state.equipment.reduce((sum, item) => sum + Number(item.serialCount || 0), 0).toLocaleString();
+      elements.summaryHealthy.textContent = state.equipment.reduce((sum, item) => sum + itemHealthStats(item).healthy, 0).toLocaleString();
     }
 
     function emptyInventoryHtml(filtered = false) {
@@ -1501,7 +1780,7 @@
 
       elements.inventoryContent.innerHTML = `
         <table class="inventory-table">
-          <thead><tr><th class="selection-cell"><input id="selectVisibleItems" class="selection-checkbox" type="checkbox" aria-label="Select all visible items" /></th><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Location</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
+          <thead><tr><th class="selection-cell"><input id="selectVisibleItems" class="selection-checkbox" type="checkbox" aria-label="Select all visible items" /></th><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Location</th><th>Health</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
           <tbody>${items.map(renderItemRows).join("")}</tbody>
         </table>`;
 
@@ -1532,11 +1811,12 @@
           <td><span class="badge badge-project">${escapeHtml(item.projectName)}</span></td>
           <td><span class="badge ${item.itemType === "Device" ? "badge-device" : "badge-component"}">${escapeHtml(item.itemType)}</span></td>
           <td><span class="badge location-mode-badge ${combined ? "" : "serial"}">${combined ? escapeHtml(formatLocation(item.combinedLocation)) : "Per serial"}</span></td>
+          <td>${itemHealthSummaryHtml(item, true)}</td>
           <td><span class="quantity-value">${Number(item.quantity || 0).toLocaleString()}</span><span class="quantity-sub">physical units</span></td>
           <td><span class="quantity-value">${Number(item.serialCount || 0).toLocaleString()}</span><span class="quantity-sub">registered</span></td>
           <td class="actions-cell"><div class="row-actions"><button class="button button-ghost button-icon expand-item" type="button" data-item-id="${item.id}" aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(item.name)}">${icon("chevron", "icon chevron")}</button></div></td>
         </tr>
-        ${expanded ? `<tr class="detail-row"><td colspan="9">${renderItemDetail(item)}</td></tr>` : ""}`;
+        ${expanded ? `<tr class="detail-row"><td colspan="10">${renderItemDetail(item)}</td></tr>` : ""}`;
     }
 
     function renderItemDetail(item) {
@@ -1557,6 +1837,8 @@
               <div class="meta-box"><span>Type</span><strong>${escapeHtml(item.itemType)}</strong></div>
               <div class="meta-box"><span>Quantity</span><strong>${Number(item.quantity || 0).toLocaleString()}</strong></div>
               <div class="meta-box"><span>Registered</span><strong>${Number(item.serialCount || 0).toLocaleString()}</strong></div>
+              <div class="meta-box"><span>Health tracking</span><strong>${itemHealthMode(item) === "count" ? "By unit counts" : "By serial number"}</strong></div>
+              <div class="meta-box"><span>Health totals</span><strong>${itemHealthStats(item).healthy} healthy · ${itemHealthStats(item).nonfunctional} not functional · ${itemHealthStats(item).unknown} unmarked</strong></div>
               <div class="meta-box"><span>Location tracking</span><strong>${combined ? "Combined item location" : "Per serial number"}</strong></div>
               <div class="meta-box"><span>Item location</span><strong>${escapeHtml(combined ? formatLocation(item.combinedLocation) : "Stored on each serial record")}</strong></div>
             </div>
@@ -1567,7 +1849,7 @@
           </div>
         </div>
         <section class="serial-section">
-          <div class="serial-heading"><div><h3>Serial numbers</h3><span>${combined ? "All serials inherit the combined item location; lending and status remain serial-specific." : "Each serial has its own location and history."}</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
+          <div class="serial-heading"><div><h3>Serial numbers</h3><span>${itemHealthMode(item) === "serial" ? "Health is labeled on each serial record. " : "Health is tracked by item counts; serial health labels are not used. "}${combined ? "All serials inherit the combined item location." : "Each serial has its own location and history."}</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
           ${renderSerialTable(item, serials)}
         </section>
         <section class="notes-section">
@@ -1600,12 +1882,13 @@
       const combined = itemUsesCombinedLocation(item);
       if (!serials) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading serial numbers</h3></div>`;
       if (serials.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("hash")}<h3>No serial numbers registered</h3><p>${combined ? `Add them one at a time or paste a separated bulk list. They will automatically use ${escapeHtml(formatLocation(item.combinedLocation))}.` : "Add them one at a time or paste a separated bulk list. One initial location is applied to that entry batch. Every serial can later be fully edited, including its exact place within the selected sub-location."}</p></div>`;
-      return `<div class="table-wrap"><table class="serial-table"><thead><tr><th>Serial number</th><th>Current location</th><th>Status</th><th></th></tr></thead><tbody>${serials.map((serial) => {
+      return `<div class="table-wrap"><table class="serial-table"><thead><tr><th>Serial number</th><th>Current location</th><th>Health</th><th>Status</th><th></th></tr></thead><tbody>${serials.map((serial) => {
         const loaned = Boolean(serial.loan?.isLoaned);
         const shownLocation = combined ? item.combinedLocation : serial.currentLocation;
         return `<tr>
           <td><span class="serial-number">${escapeHtml(serial.serialNumber)}</span></td>
           <td>${locationSummaryHtml(shownLocation)}${combined ? `<span class="location-sub">Combined item location</span>` : ""}</td>
+          <td>${itemHealthMode(item) === "serial" ? healthBadgeHtml(serial.healthStatus) : `<span class="badge location-mode-badge">Count based</span>`}</td>
           <td>${loaned ? `<span class="badge badge-loaned">Lent to ${escapeHtml(serial.loan.memberName)}</span>` : `<span class="badge badge-available">Available</span>`}</td>
           <td><div class="serial-actions">
             <button class="button button-ghost button-small view-logs" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("clock")} Logs</button>
@@ -1616,6 +1899,147 @@
           </div></td>
         </tr>`;
       }).join("")}</tbody></table></div>`;
+    }
+
+    function normalizeExperimentRequirements(value) {
+      const list = Array.isArray(value) ? value : Object.values(value || {});
+      return list.map((entry) => ({
+        itemId: String(entry?.itemId || "").trim(),
+        quantity: Math.max(1, Number(entry?.quantity || 1)),
+      })).filter((entry) => entry.itemId);
+    }
+
+    function validateExperiment(experiment) {
+      const requirements = normalizeExperimentRequirements(experiment?.requirements);
+      const results = requirements.map((requirement) => {
+        const item = findItem(requirement.itemId);
+        if (!item) return { ...requirement, item: null, healthy: 0, feasible: false, reason: "Item no longer exists" };
+        const stats = itemHealthStats(item);
+        const feasible = stats.loaded && stats.healthy >= requirement.quantity;
+        const basis = stats.mode === "count" ? "count-based health" : "serial health labels";
+        const reason = !stats.loaded
+          ? "Health records are still loading"
+          : feasible
+            ? `${stats.healthy} healthy available by ${basis}`
+            : `Needs ${requirement.quantity}; only ${stats.healthy} healthy by ${basis}`;
+        return { ...requirement, item, healthy: stats.healthy, feasible, reason };
+      });
+      return { feasible: requirements.length > 0 && results.every((result) => result.feasible), results };
+    }
+
+    function renderExperiments() {
+      const validations = state.experiments.map((experiment) => ({ experiment, validation: validateExperiment(experiment) }));
+      elements.summaryExperiments.textContent = state.experiments.length.toLocaleString();
+      elements.summaryFeasible.textContent = validations.filter(({ validation }) => validation.feasible).length.toLocaleString();
+      elements.summaryInfeasible.textContent = validations.filter(({ validation }) => !validation.feasible).length.toLocaleString();
+
+      if (state.experiments.length === 0) {
+        elements.experimentsContent.innerHTML = `<div class="panel empty-state">${icon("lab")}<h3>No experiments defined</h3><p>Create an experiment and list the healthy equipment quantities it requires. Feasibility will update automatically whenever item health changes.</p></div>`;
+        return;
+      }
+
+      elements.experimentsContent.innerHTML = `<div class="experiment-grid">${validations.map(({ experiment, validation }) => `
+        <article class="experiment-card">
+          <div class="experiment-card-header">
+            <div><h2>${escapeHtml(experiment.name)}</h2><p class="experiment-description">${escapeHtml(experiment.description || "No experiment description provided.")}</p></div>
+            <span class="badge ${validation.feasible ? "badge-healthy" : "badge-unhealthy"}">${validation.feasible ? "Feasible" : "Not feasible"}</span>
+          </div>
+          <div class="experiment-requirements">${validation.results.map((result) => `
+            <div class="experiment-requirement">
+              <div><strong>${escapeHtml(result.item?.name || "Missing equipment item")}</strong><span>${escapeHtml(result.reason)}</span></div>
+              <div class="requirement-result"><span class="badge ${result.feasible ? "badge-healthy" : "badge-unhealthy"}">${result.healthy} / ${result.quantity} healthy</span></div>
+            </div>`).join("")}</div>
+          <div class="experiment-card-footer">
+            <button class="button button-secondary button-small edit-experiment" type="button" data-experiment-id="${experiment.id}">${icon("edit")} Edit</button>
+            <button class="button button-danger button-small delete-experiment" type="button" data-experiment-id="${experiment.id}">${icon("trash")} Delete</button>
+          </div>
+        </article>`).join("")}</div>`;
+
+      $$(".edit-experiment", elements.experimentsContent).forEach((button) => button.addEventListener("click", () => openExperimentDialog(state.experiments.find((entry) => entry.id === button.dataset.experimentId))));
+      $$(".delete-experiment", elements.experimentsContent).forEach((button) => button.addEventListener("click", () => requestDeleteExperiment(state.experiments.find((entry) => entry.id === button.dataset.experimentId))));
+    }
+
+    function setActiveTab(tab) {
+      state.activeTab = tab === "experiments" ? "experiments" : "inventory";
+      const experimentsActive = state.activeTab === "experiments";
+      elements.inventoryTabButton.classList.toggle("active", !experimentsActive);
+      elements.experimentsTabButton.classList.toggle("active", experimentsActive);
+      elements.inventoryTabPanel.classList.toggle("hidden", experimentsActive);
+      elements.experimentsTabPanel.classList.toggle("hidden", !experimentsActive);
+      if (experimentsActive) renderExperiments();
+    }
+
+    function experimentItemOptions(selectedItemId = "") {
+      return `<option value="">Select equipment item</option>${state.equipment.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selectedItemId ? "selected" : ""}>${escapeHtml(item.name)} · ${escapeHtml(item.projectName)} · ${itemHealthStats(item).healthy} healthy</option>`).join("")}`;
+    }
+
+    function addExperimentRequirementRow(requirement = {}) {
+      const row = document.createElement("div");
+      row.className = "requirement-row";
+      row.innerHTML = `<div class="field"><label>Equipment item</label><select class="requirement-item" required>${experimentItemOptions(requirement.itemId || "")}</select></div><div class="field"><label>Required healthy units</label><input class="requirement-quantity" type="number" min="1" max="10000" step="1" value="${Math.max(1, Number(requirement.quantity || 1))}" required /></div><button class="button button-danger button-icon remove-requirement" type="button" aria-label="Remove requirement">${icon("trash")}</button>`;
+      row.querySelector(".remove-requirement").addEventListener("click", () => {
+        row.remove();
+        if (!elements.experimentRequirements.children.length) addExperimentRequirementRow();
+      });
+      elements.experimentRequirements.append(row);
+    }
+
+    function readExperimentRequirements() {
+      const requirements = $$(".requirement-row", elements.experimentRequirements).map((row) => ({
+        itemId: $(".requirement-item", row).value,
+        quantity: Number($(".requirement-quantity", row).value),
+      }));
+      if (requirements.some((entry) => !entry.itemId)) throw new Error("Select an equipment item for every requirement.");
+      if (requirements.some((entry) => !Number.isInteger(entry.quantity) || entry.quantity < 1)) throw new Error("Every required quantity must be a whole number of at least one.");
+      const ids = requirements.map((entry) => entry.itemId);
+      if (new Set(ids).size !== ids.length) throw new Error("Each equipment item can appear only once in an experiment.");
+      if (!requirements.length) throw new Error("Add at least one required equipment item.");
+      return requirements;
+    }
+
+    function openExperimentDialog(experiment = null) {
+      state.experimentBeingEdited = experiment;
+      elements.experimentForm.reset();
+      elements.experimentDialogTitle.textContent = experiment ? "Edit experiment" : "Add experiment";
+      elements.saveExperimentButton.textContent = experiment ? "Save changes" : "Save experiment";
+      elements.experimentName.value = experiment?.name || "";
+      elements.experimentDescription.value = experiment?.description || "";
+      elements.experimentRequirements.innerHTML = "";
+      const requirements = normalizeExperimentRequirements(experiment?.requirements);
+      (requirements.length ? requirements : [{}]).forEach(addExperimentRequirementRow);
+      setInlineMessage(elements.experimentFormMessage);
+      elements.experimentDialog.showModal();
+    }
+
+    async function saveExperimentRecord(previousExperiment, payload) {
+      const name = String(payload.name || "").trim().slice(0, 180);
+      if (!name) throw new Error("Enter an experiment name.");
+      const experimentId = previousExperiment?.id || push(ref(htmlDb, `${TRACKER_ROOT}/experiments`)).key;
+      const path = `${TRACKER_ROOT}/experiments/${experimentId}`;
+      const record = {
+        name,
+        description: String(payload.description || "").trim().slice(0, 3000),
+        requirements: payload.requirements,
+        updatedAt: serverTimestamp(),
+        updatedBy: firebaseUserStamp(),
+      };
+      if (!previousExperiment) {
+        record.createdAt = serverTimestamp();
+        record.createdBy = firebaseUserStamp();
+      }
+      await update(ref(htmlDb, path), record);
+      return experimentId;
+    }
+
+    function requestDeleteExperiment(experiment) {
+      if (!experiment) return;
+      state.confirmAction = { type: "delete-experiment", experiment };
+      elements.confirmTitle.textContent = "Delete experiment";
+      elements.confirmText.textContent = `Delete “${experiment.name}” and its equipment requirements? Inventory items and health records will not be changed.`;
+      elements.confirmDateField.classList.add("hidden");
+      elements.confirmButton.textContent = "Delete experiment";
+      setInlineMessage(elements.confirmMessage);
+      elements.confirmDialog.showModal();
     }
 
     function bindInventoryActions() {
@@ -1667,10 +2091,6 @@
     function toggleItem(itemId) {
       if (state.expandedItems.has(itemId)) {
         state.expandedItems.delete(itemId);
-        const unsubscribe = state.serialSubscriptions.get(itemId);
-        if (unsubscribe) unsubscribe();
-        state.serialSubscriptions.delete(itemId);
-        state.serialsByItem.delete(itemId);
         const noteUnsubscribe = state.noteSubscriptions.get(itemId);
         if (noteUnsubscribe) noteUnsubscribe();
         state.noteSubscriptions.delete(itemId);
@@ -1690,6 +2110,7 @@
         (serials) => {
           state.serialsByItem.set(itemId, serials);
           renderInventory();
+          renderExperiments();
         },
         (error) => toast("Serials could not load", firebaseErrorMessage(error), "error")
       );
@@ -1734,6 +2155,12 @@
           const nextMode = details.nextMode === "combined" ? "combined item location" : "per-serial locations";
           const locationPart = details.nextMode === "combined" ? ` · ${formatLocation(details.toLocation)}` : "";
           return `${previousMode} → ${nextMode}${locationPart}`;
+        }
+        case "Health changed": return `${healthStatusLabel(details.previousHealthStatus)} → ${healthStatusLabel(details.nextHealthStatus)}`;
+        case "Health tracking changed": {
+          const from = details.previousMode === "count" ? `count based (${details.previousHealthyCount || 0} healthy, ${details.previousNonFunctionalCount || 0} not functional)` : "serial based";
+          const to = details.nextMode === "count" ? `count based (${details.nextHealthyCount || 0} healthy, ${details.nextNonFunctionalCount || 0} not functional)` : "serial based";
+          return `${from} → ${to}`;
         }
         case "Tags changed": {
           const previous = normalizeTags(details.previousTags).join(", ") || "No tags";
@@ -1792,6 +2219,10 @@
       elements.itemName.value = item?.name || "";
       elements.itemTags.value = normalizeTags(item?.tags).join(", ");
       elements.itemQuantity.value = item?.quantity || 1;
+      elements.itemHealthMode.value = itemHealthMode(item);
+      elements.itemHealthyCount.value = itemHealthMode(item) === "count" ? Number(item?.healthyCount || 0) : Number(item?.quantity || 1);
+      elements.itemNonFunctionalCount.value = itemHealthMode(item) === "count" ? Number(item?.nonFunctionalCount || 0) : 0;
+      refreshItemHealthMode(false);
       elements.itemLocationMode.value = item?.locationMode === "combined" ? "combined" : "serial";
       buildLocationFields(elements.itemCombinedLocationBuilder, "itemCombinedLocation", item?.combinedLocation || { site: "EC5", subLocation: "Shared Space" });
       refreshItemLocationMode();
@@ -1876,6 +2307,8 @@
       const combined = itemUsesCombinedLocation(item);
       elements.serialDialogSubtitle.textContent = `${item.name} · ${item.serialCount || 0} of ${item.quantity} serials registered${combined ? " · using the combined item location" : ""}`;
       elements.serialDate.value = nowLocalInputValue();
+      elements.serialHealthField.classList.toggle("hidden", itemHealthMode(item) !== "serial");
+      elements.serialHealthStatus.value = "healthy";
       elements.serialLocationField.classList.toggle("hidden", combined);
       elements.serialInheritedLocation.classList.toggle("hidden", !combined);
       if (combined) {
@@ -1916,6 +2349,8 @@
       state.serialBeingEdited = serial;
       elements.renameSerialForm.reset();
       elements.renameSerialInput.value = serial.serialNumber;
+      elements.renameSerialHealthField.classList.toggle("hidden", itemHealthMode(item) !== "serial");
+      elements.renameSerialHealthStatus.value = normalizeHealthStatus(serial.healthStatus);
       const combined = itemUsesCombinedLocation(item);
       elements.renameSerialLocationField.classList.toggle("hidden", combined);
       elements.renameSerialInheritedLocation.classList.toggle("hidden", !combined);
@@ -1985,7 +2420,7 @@
     function requestDeleteItem(item) {
       state.confirmAction = { type: "delete-item", item };
       elements.confirmTitle.textContent = "Delete equipment item";
-      elements.confirmText.textContent = `Delete “${item.name}”, its active serial records, and its item comments with attached photos? Historical activity tickets will be preserved for audit purposes. This cannot be undone.`;
+      elements.confirmText.textContent = `Delete “${item.name}”, its active serial records, and its item comments with attached photos? Historical activity tickets will be preserved. Experiments that require this item will remain but become not feasible until edited. This cannot be undone.`;
       elements.confirmDateField.classList.add("hidden");
       elements.confirmButton.textContent = "Delete item";
       setInlineMessage(elements.confirmMessage);
@@ -2044,7 +2479,7 @@
         : scope === "project"
           ? `${items.length} item${items.length === 1 ? "" : "s"} in project ${elements.pdfProject.value}`
           : `${items.length} item${items.length === 1 ? "" : "s"} in category ${elements.pdfCategory.value}`;
-      elements.pdfSummary.textContent = `${description}. The PDF uses a compact portrait layout for phone viewing, with larger item and comment photos, dense serial tables, tags, locations, and dated comments.`;
+      elements.pdfSummary.textContent = `${description}. The PDF uses a compact portrait layout for phone viewing, with health totals, serial health labels, larger item and comment photos, dense serial tables, tags, locations, and dated comments.`;
     }
 
     function pdfImageFormat(dataUrl) {
@@ -2147,7 +2582,7 @@
         photo: "",
         item: `${item.name || "Unnamed item"}\nTags: ${normalizeTags(item.tags).join(", ") || "None"}`,
         projectType: `${item.projectName || ""}\n${item.itemType || ""}`,
-        counts: `Qty ${item.quantity || 0}\nSN ${item.serials?.length || 0}\nNotes ${item.notes?.length || 0}`,
+        counts: `Qty ${item.quantity || 0}\nHealthy ${itemHealthStats(item).healthy}\nNot functional ${itemHealthStats(item).nonfunctional}\nSN ${item.serials?.length || 0}`,
         location: itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per serial number",
         itemPhoto: item.photoBase64 || "",
       }));
@@ -2211,7 +2646,7 @@
         const tagLines = doc.splitTextToSize(`Tags: ${normalizeTags(item.tags).join(", ") || "None"}`, textWidth);
         const commentLines = doc.splitTextToSize(item.comment || "No main item comment.", textWidth);
         const metadataLines = doc.splitTextToSize(
-          `${item.projectName || ""} · ${item.itemType || ""} · Quantity ${item.quantity || 0} · ${itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per-serial locations"}`,
+          `${item.projectName || ""} · ${item.itemType || ""} · Quantity ${item.quantity || 0} · Health: ${itemHealthStats(item).healthy} healthy, ${itemHealthStats(item).nonfunctional} not functional, ${itemHealthStats(item).unknown} unmarked (${itemHealthMode(item) === "count" ? "count based" : "serial based"}) · ${itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per-serial locations"}`,
           textWidth,
         );
         const textHeight = 4 + nameLines.length * 4.4 + metadataLines.length * 3.5 + tagLines.length * 3.4 + commentLines.length * 3.5;
@@ -2254,6 +2689,7 @@
         const serialRows = (item.serials || []).map((serial) => ({
           serial: serial.serialNumber || "",
           location: formatLocation(itemUsesCombinedLocation(item) ? item.combinedLocation : serial.currentLocation),
+          health: itemHealthMode(item) === "serial" ? healthStatusLabel(serial.healthStatus) : "Count based",
           status: serial.loan?.isLoaned ? `Lent${serial.loan?.memberName ? ` · ${serial.loan.memberName}` : ""}` : "Available",
         }));
 
@@ -2263,9 +2699,10 @@
           columns: [
             { header: "Serial number", dataKey: "serial" },
             { header: "Current location", dataKey: "location" },
+            { header: "Health", dataKey: "health" },
             { header: "Status / member", dataKey: "status" },
           ],
-          body: serialRows.length ? serialRows : [{ serial: "No serials registered", location: "", status: "" }],
+          body: serialRows.length ? serialRows : [{ serial: "No serials registered", location: "", health: "", status: "" }],
           theme: "grid",
           margin: { left: margin, right: margin, top: 8, bottom: 10 },
           styles: {
@@ -2276,7 +2713,7 @@
             lineWidth: 0.12,
           },
           headStyles: { fillColor: [23, 57, 70], textColor: 255, minCellHeight: 6.2 },
-          columnStyles: { serial: { cellWidth: 47 }, location: { cellWidth: 93 }, status: { cellWidth: "auto" } },
+          columnStyles: { serial: { cellWidth: 39 }, location: { cellWidth: 72 }, health: { cellWidth: 28 }, status: { cellWidth: "auto" } },
           rowPageBreak: "avoid",
         });
         y = doc.lastAutoTable.finalY + 2.5;
@@ -2360,8 +2797,9 @@
     function downloadCsv(rows) {
       const columns = [
         ["Project", "projectName"], ["Item Type", "itemType"], ["Item", "itemName"], ["Tags", "tags"], ["Quantity", "quantity"],
+        ["Health Tracking", "healthMode"], ["Healthy Units", "healthyCount"], ["Not Functional Units", "nonFunctionalCount"], ["Unmarked Units", "unmarkedCount"],
         ["Location Tracking", "locationMode"], ["Combined Item Location", "combinedLocation"], ["Main Comment", "comment"], ["Comment Count", "commentCount"],
-        ["Serial Number", "serialNumber"], ["Effective Location", "location"], ["Status", "lendingStatus"], ["Member", "memberName"],
+        ["Serial Number", "serialNumber"], ["Serial Health", "serialHealth"], ["Effective Location", "location"], ["Status", "lendingStatus"], ["Member", "memberName"],
       ];
       const quote = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
       const csv = [columns.map(([label]) => quote(label)).join(","), ...rows.map((row) => columns.map(([, key]) => quote(row[key])).join(","))].join("\r\n");
@@ -2380,24 +2818,30 @@
       items.forEach((item) => {
         const combined = itemUsesCombinedLocation(item);
         const serials = item.serials || [];
+        const healthStats = itemHealthStats(item);
         const base = {
           projectName: item.projectName || "",
           itemType: item.itemType || "",
           itemName: item.name || "",
           tags: normalizeTags(item.tags).join(", "),
           quantity: item.quantity || 0,
+          healthMode: healthStats.mode === "count" ? "Count based" : "Serial based",
+          healthyCount: healthStats.healthy,
+          nonFunctionalCount: healthStats.nonfunctional,
+          unmarkedCount: healthStats.unknown,
           locationMode: combined ? "Combined item location" : "Per serial number",
           combinedLocation: combined ? formatLocation(item.combinedLocation) : "",
           comment: item.comment || "",
           commentCount: (item.notes || []).length,
         };
         if (serials.length === 0) {
-          rows.push({ ...base, serialNumber: "", location: combined ? formatLocation(item.combinedLocation) : "", lendingStatus: "Unregistered", memberName: "" });
+          rows.push({ ...base, serialNumber: "", serialHealth: "", location: combined ? formatLocation(item.combinedLocation) : "", lendingStatus: "Unregistered", memberName: "" });
           return;
         }
         serials.forEach((serial) => rows.push({
           ...base,
           serialNumber: serial.serialNumber || "",
+          serialHealth: itemHealthMode(item) === "serial" ? healthStatusLabel(serial.healthStatus) : "Count based",
           location: formatLocation(combined ? item.combinedLocation : serial.currentLocation),
           lendingStatus: serial.loan?.isLoaned ? "Lent" : "Available",
           memberName: serial.loan?.memberName || "",
@@ -2408,12 +2852,14 @@
 
     async function startDataSubscriptions() {
       state.equipmentUnsubscribe?.();
+      state.experimentsUnsubscribe?.();
       state.logsUnsubscribe?.();
       state.equipmentUnsubscribe = subscribeEquipment(
         (items) => {
           state.equipment = items;
           const validIds = new Set(items.map((item) => item.id));
           [...state.selectedItems].forEach((id) => { if (!validIds.has(id)) state.selectedItems.delete(id); });
+          items.forEach((item) => subscribeToItemSerials(item.id));
           [...state.expandedItems].forEach((id) => {
             if (validIds.has(id)) return;
             state.expandedItems.delete(id);
@@ -2425,8 +2871,18 @@
             state.notesByItem.delete(id);
           });
           renderInventory();
+          renderExperiments();
         },
         (error) => toast("Inventory could not load", firebaseErrorMessage(error), "error")
+      );
+      state.experimentsUnsubscribe = onValue(
+        ref(htmlDb, `${TRACKER_ROOT}/experiments`),
+        (snapshot) => {
+          const value = snapshot.val() || {};
+          state.experiments = Object.entries(value).map(([id, experiment]) => ({ id, ...experiment, requirements: normalizeExperimentRequirements(experiment?.requirements) })).sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+          renderExperiments();
+        },
+        (error) => toast("Experiments could not load", firebaseErrorMessage(error), "error")
       );
       state.logsUnsubscribe = subscribeActivityLogs(
         (logs) => { state.logs = logs; renderActivity(); },
@@ -2436,10 +2892,12 @@
 
     function clearDataSubscriptions() {
       state.equipmentUnsubscribe?.();
+      state.experimentsUnsubscribe?.();
       state.logsUnsubscribe?.();
       state.serialSubscriptions.forEach((unsubscribe) => unsubscribe());
       state.noteSubscriptions.forEach((unsubscribe) => unsubscribe());
       state.equipmentUnsubscribe = null;
+      state.experimentsUnsubscribe = null;
       state.logsUnsubscribe = null;
       state.serialSubscriptions.clear();
       state.serialsByItem.clear();
@@ -2448,6 +2906,7 @@
       state.expandedItems.clear();
       state.selectedItems.clear();
       state.equipment = [];
+      state.experiments = [];
       state.logs = [];
       state.selectedLogFilter = null;
     }
@@ -2483,7 +2942,15 @@
       try { await logout(); } catch (error) { toast("Sign out failed", firebaseErrorMessage(error), "error"); }
     });
 
+    elements.inventoryTabButton.addEventListener("click", () => setActiveTab("inventory"));
+    elements.experimentsTabButton.addEventListener("click", () => setActiveTab("experiments"));
     elements.addItemButton.addEventListener("click", () => openItemDialog());
+    elements.addExperimentButton.addEventListener("click", () => openExperimentDialog());
+    elements.addRequirementButton.addEventListener("click", () => addExperimentRequirementRow());
+    elements.itemHealthMode.addEventListener("change", () => refreshItemHealthMode(true));
+    elements.itemQuantity.addEventListener("input", refreshItemHealthCountSummary);
+    elements.itemHealthyCount.addEventListener("input", refreshItemHealthCountSummary);
+    elements.itemNonFunctionalCount.addEventListener("input", refreshItemHealthCountSummary);
     elements.itemLocationMode.addEventListener("change", refreshItemLocationMode);
     elements.pdfButton.addEventListener("click", openPdfDialog);
     elements.searchInput.addEventListener("input", renderInventory);
@@ -2562,12 +3029,40 @@
       }
     });
 
+    elements.experimentForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      elements.saveExperimentButton.disabled = true;
+      setInlineMessage(elements.experimentFormMessage);
+      try {
+        const payload = {
+          name: elements.experimentName.value,
+          description: elements.experimentDescription.value,
+          requirements: readExperimentRequirements(),
+        };
+        await saveExperimentRecord(state.experimentBeingEdited, payload);
+        toast(state.experimentBeingEdited ? "Experiment updated" : "Experiment created", `${payload.name.trim()} will be validated against healthy inventory.`);
+        elements.experimentDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.experimentFormMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        elements.saveExperimentButton.disabled = false;
+      }
+    });
+
     elements.itemForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const locationMode = elements.itemLocationMode.value === "combined" ? "combined" : "serial";
+      const healthMode = elements.itemHealthMode.value === "count" ? "count" : "serial";
+      const healthyCount = Number(elements.itemHealthyCount.value || 0);
+      const nonFunctionalCount = Number(elements.itemNonFunctionalCount.value || 0);
       let combinedLocation = null;
       try {
         if (locationMode === "combined") combinedLocation = validateLocationForHtml(readLocation(elements.itemCombinedLocationBuilder, "itemCombinedLocation"));
+        if (healthMode === "count") {
+          const quantity = Number(elements.itemQuantity.value);
+          if (!Number.isInteger(healthyCount) || healthyCount < 0 || !Number.isInteger(nonFunctionalCount) || nonFunctionalCount < 0) throw new Error("Health counts must be whole numbers of zero or more.");
+          if (healthyCount + nonFunctionalCount !== quantity) throw new Error(`Healthy and not-functional counts must total the item quantity (${quantity}).`);
+        }
       } catch (error) {
         setInlineMessage(elements.itemFormMessage, firebaseErrorMessage(error), "error");
         return;
@@ -2591,11 +3086,13 @@
           await updateEquipmentRecord(previousItem, payload, state.user);
           await saveItemLocationSettings(previousItem.id, previousItem, { ...previousItem, ...payload }, locationMode, combinedLocation);
           await saveItemTags(previousItem.id, previousItem, { ...previousItem, ...payload }, payload.tags);
+          await saveItemHealthSettings(previousItem.id, previousItem, { ...previousItem, ...payload }, healthMode, healthyCount, nonFunctionalCount);
           toast("Item updated", `${payload.name} was saved with ${payload.tags.length} search tag${payload.tags.length === 1 ? "" : "s"}${locationMode === "combined" ? " and one combined location" : " and serial-level locations"}.`);
         } else {
           const itemId = await createEquipment(payload, state.user);
           await saveItemLocationSettings(itemId, null, { id: itemId, ...payload }, locationMode, combinedLocation);
           await saveItemTags(itemId, null, { id: itemId, ...payload }, payload.tags);
+          await saveItemHealthSettings(itemId, null, { id: itemId, ...payload }, healthMode, healthyCount, nonFunctionalCount);
           toast("Item created", `${payload.name} was added with ${payload.tags.length} search tag${payload.tags.length === 1 ? "" : "s"}${locationMode === "combined" ? " and a combined item location" : " and serial-level locations"}. Expand it to register serial numbers and comments.`);
         }
         elements.itemDialog.close();
@@ -2620,7 +3117,9 @@
       elements.saveSerialButton.disabled = true;
       setInlineMessage(elements.serialFormMessage);
       try {
-        const count = await addSerialNumbers(item, entries, new Date(elements.serialDate.value), state.user);
+        const serialDate = new Date(elements.serialDate.value);
+        const count = await addSerialNumbers(item, entries, serialDate, state.user);
+        await setNewSerialHealthByNumbers(item, numbers, elements.serialHealthStatus.value, serialDate);
         toast("Serials registered", `${count} serial number${count === 1 ? " was" : "s were"} added to ${item.name}.`);
         elements.serialDialog.close();
       } catch (error) {
@@ -2636,6 +3135,7 @@
       event.preventDefault();
       setInlineMessage(elements.renameSerialMessage);
       try {
+        const effectiveDate = new Date(elements.renameSerialDate.value);
         const changed = await updateSerialRecord(
           state.serialContextItem,
           state.serialBeingEdited,
@@ -2649,10 +3149,13 @@
               memberName: elements.renameSerialMemberName.value,
             },
           },
-          new Date(elements.renameSerialDate.value),
+          effectiveDate,
           state.user
         );
-        toast("Serial record saved", changed ? (itemUsesCombinedLocation(state.serialContextItem) ? "The serial number and status were updated; location remains controlled by the item." : "The serial number, location, and status were updated and logged.") : "No changes were required.");
+        const healthChanged = itemHealthMode(state.serialContextItem) === "serial"
+          ? await saveSerialHealthStatus(state.serialContextItem, state.serialBeingEdited, elements.renameSerialHealthStatus.value, effectiveDate)
+          : false;
+        toast("Serial record saved", (changed || healthChanged) ? (itemUsesCombinedLocation(state.serialContextItem) ? "The serial number, lending status, and health label were saved; location remains controlled by the item." : "The serial number, location, lending status, and health label were saved and logged.") : "No changes were required.");
         if (state.selectedLogFilter?.serialId === state.serialBeingEdited.id) state.selectedLogFilter.serialNumber = elements.renameSerialInput.value.trim();
         elements.renameSerialDialog.close();
       } catch (error) {
@@ -2695,7 +3198,10 @@
       elements.confirmButton.disabled = true;
       setInlineMessage(elements.confirmMessage);
       try {
-        if (action.type === "delete-item") {
+        if (action.type === "delete-experiment") {
+          await update(ref(htmlDb), { [`${TRACKER_ROOT}/experiments/${action.experiment.id}`]: null });
+          toast("Experiment deleted", `${action.experiment.name} was removed. Inventory and health records were unchanged.`);
+        } else if (action.type === "delete-item") {
           setLoading(true, "Deleting item, serials, and comments…");
           await deleteEquipmentRecord(action.item.id);
           state.selectedItems.delete(action.item.id);
