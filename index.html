@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Lab Equipment Tracker</title>
+  <style>
+    :root {
+      --ink-950: #081820;
+      --ink-900: #102630;
+      --ink-800: #173946;
+      --ink-700: #285260;
+      --ink-600: #426c77;
+      --ink-500: #64848c;
+      --lab-700: #006f73;
+      --lab-600: #008b8b;
+      --lab-500: #0ca6a6;
+      --lab-200: #a7e4e1;
+      --lab-100: #dff6f4;
+      --blue-100: #e6f0ff;
+      --blue-700: #2359a6;
+      --amber-100: #fff4d2;
+      --amber-700: #8a5a00;
+      --red-100: #ffe8e8;
+      --red-700: #a92d2d;
+      --green-100: #e4f7ec;
+      --green-700: #167847;
+      --surface: #ffffff;
+      --surface-soft: #f5f9fa;
+      --surface-muted: #eaf1f2;
+      --border: #d5e1e3;
+      --shadow: 0 18px 45px rgba(8, 24, 32, 0.10);
+      --shadow-soft: 0 8px 24px rgba(8, 24, 32, 0.08);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 9px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; background: var(--surface-soft); }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink-900);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(12, 166, 166, 0.12), transparent 28rem),
+        radial-gradient(circle at 90% 10%, rgba(35, 89, 166, 0.08), transparent 24rem),
+        var(--surface-soft);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+    img { max-width: 100%; }
+
+    .hidden { display: none !important; }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .icon {
+      width: 1.05rem;
+      height: 1.05rem;
+      display: inline-block;
+      vertical-align: -0.16rem;
+      fill: currentColor;
+      flex: 0 0 auto;
+    }
+
+    .login-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+    }
+
+    .login-hero {
+      padding: clamp(2rem, 7vw, 6rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #fff;
+      background:
+        linear-gradient(145deg, rgba(8, 24, 32, 0.95), rgba(0, 111, 115, 0.90)),
+        repeating-linear-gradient(90deg, transparent 0 74px, rgba(255,255,255,.06) 74px 75px),
+        repeating-linear-gradient(0deg, transparent 0 74px, rgba(255,255,255,.05) 74px 75px);
+    }
+
+    .brand-lockup { display: flex; align-items: center; gap: 0.9rem; }
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 15px;
+      background: rgba(255,255,255,.10);
+      backdrop-filter: blur(12px);
+    }
+    .brand-mark svg { width: 29px; height: 29px; }
+    .brand-name { font-weight: 800; letter-spacing: -0.025em; font-size: 1.15rem; }
+    .brand-subtitle { color: rgba(255,255,255,.68); font-size: 0.84rem; margin-top: 0.15rem; }
+
+    .hero-copy { max-width: 720px; padding: 4rem 0; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .45rem .72rem;
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.84);
+      font-weight: 750;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.6rem, 6vw, 5.8rem);
+      line-height: .96;
+      letter-spacing: -.055em;
+      max-width: 850px;
+      margin: 1.2rem 0 1.4rem;
+    }
+    .hero-copy p {
+      max-width: 650px;
+      color: rgba(255,255,255,.76);
+      font-size: clamp(1rem, 1.6vw, 1.2rem);
+      line-height: 1.72;
+      margin: 0;
+    }
+    .hero-features {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 2.5rem;
+    }
+    .hero-feature {
+      padding: 1rem;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      background: rgba(255,255,255,.07);
+    }
+    .hero-feature strong { display: block; margin-bottom: .35rem; }
+    .hero-feature span { color: rgba(255,255,255,.66); font-size: .86rem; line-height: 1.5; }
+    .login-footer { color: rgba(255,255,255,.52); font-size: .78rem; }
+
+    .login-panel {
+      padding: clamp(1.5rem, 7vw, 6rem);
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(16px);
+    }
+    .login-card { width: min(100%, 440px); }
+    .login-card h2 { font-size: 2rem; letter-spacing: -.035em; margin: 0 0 .55rem; }
+    .login-card > p { color: var(--ink-600); line-height: 1.6; margin: 0 0 2rem; }
+
+    .field { display: grid; gap: .48rem; }
+    .field + .field { margin-top: 1rem; }
+    .field label { font-size: .82rem; font-weight: 800; color: var(--ink-800); }
+    .field small { color: var(--ink-500); line-height: 1.45; }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--ink-900);
+      background: #fff;
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    input, select { min-height: 44px; padding: .68rem .78rem; }
+    textarea { min-height: 104px; resize: vertical; padding: .75rem .8rem; line-height: 1.55; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--lab-500);
+      box-shadow: 0 0 0 3px rgba(12,166,166,.13);
+    }
+    input:disabled, select:disabled, textarea:disabled { background: var(--surface-muted); }
+
+    .button {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .48rem;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: .62rem .9rem;
+      font-weight: 800;
+      font-size: .86rem;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+    .button:hover:not(:disabled) { transform: translateY(-1px); }
+    .button-primary { color: #fff; background: var(--lab-700); box-shadow: 0 6px 16px rgba(0,111,115,.18); }
+    .button-primary:hover:not(:disabled) { background: #005c61; box-shadow: 0 9px 22px rgba(0,111,115,.24); }
+    .button-secondary { color: var(--ink-800); background: #fff; border-color: var(--border); }
+    .button-secondary:hover:not(:disabled) { border-color: #afc7cb; background: var(--surface-soft); }
+    .button-danger { color: var(--red-700); background: var(--red-100); border-color: #ffd0d0; }
+    .button-ghost { min-height: 36px; padding: .45rem .62rem; color: var(--ink-700); background: transparent; }
+    .button-ghost:hover:not(:disabled) { background: var(--surface-muted); }
+    .button-small { min-height: 34px; padding: .42rem .63rem; font-size: .78rem; }
+    .button-icon { width: 38px; padding: 0; }
+    .button-block { width: 100%; }
+    .login-actions { display: grid; gap: .75rem; margin-top: 1.35rem; }
+    .text-button { border: 0; padding: .35rem; background: transparent; color: var(--lab-700); font-weight: 750; }
+
+    .inline-message {
+      display: none;
+      margin-top: 1rem;
+      padding: .8rem .9rem;
+      border-radius: 10px;
+      font-size: .86rem;
+      line-height: 1.5;
+    }
+    .inline-message.error { display: block; color: var(--red-700); background: var(--red-100); }
+    .inline-message.success { display: block; color: var(--green-700); background: var(--green-100); }
+    .inline-message.info { display: block; color: var(--blue-700); background: var(--blue-100); }
+
+    .config-warning {
+      margin-bottom: 1.2rem;
+      padding: .85rem 1rem;
+      border: 1px solid #f0d58d;
+      border-radius: 11px;
+      background: var(--amber-100);
+      color: var(--amber-700);
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+
+    .app-shell { min-height: 100vh; }
+    .app-header {
+      height: 72px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      border-bottom: 1px solid rgba(213,225,227,.86);
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(16px);
+    }
+    .app-brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+    .app-brand .brand-mark { width: 42px; height: 42px; color: #fff; background: var(--ink-900); }
+    .app-brand .brand-name { color: var(--ink-950); }
+    .app-brand .brand-subtitle { color: var(--ink-500); }
+    .user-menu { display: flex; align-items: center; gap: .75rem; }
+    .user-meta { text-align: right; min-width: 0; }
+    .user-meta strong, .user-meta span { display: block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-meta strong { font-size: .85rem; }
+    .user-meta span { font-size: .74rem; color: var(--ink-500); margin-top: .1rem; }
+
+    .app-main { padding: clamp(1rem, 3vw, 2rem); }
+    .page-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    .page-heading h1 { margin: 0; font-size: clamp(1.65rem, 2.5vw, 2.3rem); letter-spacing: -.04em; }
+    .page-heading p { margin: .38rem 0 0; color: var(--ink-600); line-height: 1.5; }
+    .heading-actions { display: flex; gap: .65rem; flex-wrap: wrap; justify-content: flex-end; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .85rem;
+      margin-bottom: 1rem;
+    }
+    .summary-card {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      padding: 1rem 1.05rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,.86);
+      box-shadow: var(--shadow-soft);
+    }
+    .summary-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: var(--lab-700);
+      background: var(--lab-100);
+    }
+    .summary-icon svg { width: 21px; height: 21px; }
+    .summary-card span { display: block; color: var(--ink-500); font-size: .74rem; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+    .summary-card strong { display: block; margin-top: .18rem; font-size: 1.35rem; letter-spacing: -.025em; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+      gap: 1rem;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: rgba(255,255,255,.93);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .8rem;
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-header h2 { margin: 0; font-size: 1rem; letter-spacing: -.015em; }
+    .panel-header p { margin: .22rem 0 0; color: var(--ink-500); font-size: .8rem; }
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(130px, .28fr));
+      gap: .65rem;
+      padding: .85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-soft);
+    }
+    .search-wrap { position: relative; }
+    .search-wrap .icon { position: absolute; left: .78rem; top: 50%; transform: translateY(-50%); color: var(--ink-500); }
+    .search-wrap input { padding-left: 2.35rem; }
+
+    .table-wrap { overflow-x: auto; }
+    .inventory-table { width: 100%; border-collapse: collapse; min-width: 780px; }
+    .inventory-table th {
+      padding: .7rem .8rem;
+      text-align: left;
+      color: var(--ink-500);
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      font-size: .69rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .inventory-table td {
+      padding: .8rem;
+      border-bottom: 1px solid #e5edef;
+      vertical-align: middle;
+      font-size: .85rem;
+    }
+    .inventory-row { cursor: pointer; transition: background .16s ease; }
+    .inventory-row:hover { background: #f8fbfb; }
+    .inventory-row.expanded { background: #f4fbfa; }
+    .inventory-row:last-child td { border-bottom: 0; }
+    .photo-cell { width: 66px; }
+    .item-photo {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--surface-muted);
+    }
+    .photo-placeholder {
+      width: 50px;
+      height: 50px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #b8cbcf;
+      border-radius: 11px;
+      color: var(--ink-500);
+      background: var(--surface-soft);
+    }
+    .item-name { font-weight: 850; color: var(--ink-950); }
+    .item-subtext { margin-top: .25rem; color: var(--ink-500); font-size: .74rem; max-width: 310px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .quantity-value { font-weight: 850; font-variant-numeric: tabular-nums; }
+    .quantity-sub { display: block; margin-top: .2rem; color: var(--ink-500); font-size: .72rem; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .32rem;
+      padding: .33rem .55rem;
+      border-radius: 999px;
+      font-size: .71rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .badge-project { color: var(--blue-700); background: var(--blue-100); }
+    .badge-device { color: #61479a; background: #f0eaff; }
+    .badge-component { color: var(--lab-700); background: var(--lab-100); }
+    .badge-available { color: var(--green-700); background: var(--green-100); }
+    .badge-loaned { color: var(--amber-700); background: var(--amber-100); }
+    .actions-cell { width: 110px; text-align: right; white-space: nowrap; }
+    .row-actions { display: flex; justify-content: flex-end; gap: .3rem; }
+    .chevron { transition: transform .18s ease; }
+    .inventory-row.expanded .chevron { transform: rotate(180deg); }
+
+    .detail-row td { padding: 0; background: #f4fbfa; }
+    .item-detail { padding: 1rem; border-bottom: 1px solid var(--border); }
+    .detail-top {
+      display: grid;
+      grid-template-columns: minmax(0, .42fr) minmax(0, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .detail-photo {
+      width: 100%;
+      max-height: 230px;
+      object-fit: contain;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .detail-card {
+      padding: .95rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .detail-card h3 { margin: 0 0 .55rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .055em; color: var(--ink-500); }
+    .comment-text { margin: 0; white-space: pre-wrap; line-height: 1.6; color: var(--ink-700); }
+    .detail-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: .8rem; }
+    .meta-box { padding: .65rem .7rem; border-radius: 10px; background: var(--surface-soft); }
+    .meta-box span { display: block; color: var(--ink-500); font-size: .68rem; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; }
+    .meta-box strong { display: block; margin-top: .2rem; font-size: .85rem; }
+    .detail-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .8rem; }
+
+    .serial-section { border: 1px solid var(--border); border-radius: 15px; background: #fff; overflow: hidden; }
+    .serial-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem .85rem; border-bottom: 1px solid var(--border); }
+    .serial-heading h3 { margin: 0; font-size: .92rem; }
+    .serial-heading span { color: var(--ink-500); font-size: .75rem; }
+    .serial-table { width: 100%; border-collapse: collapse; }
+    .serial-table th { padding: .58rem .7rem; text-align: left; color: var(--ink-500); background: var(--surface-soft); font-size: .66rem; text-transform: uppercase; letter-spacing: .055em; }
+    .serial-table td { padding: .68rem .7rem; border-top: 1px solid #e8eff0; font-size: .78rem; }
+    .serial-number { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 800; color: var(--ink-950); }
+    .location-main { font-weight: 750; }
+    .location-sub { display: block; color: var(--ink-500); margin-top: .16rem; font-size: .7rem; }
+    .serial-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; }
+
+    .empty-state { padding: 3rem 1.2rem; text-align: center; color: var(--ink-500); }
+    .empty-state svg { width: 42px; height: 42px; color: #9db5ba; }
+    .empty-state h3 { margin: .75rem 0 .35rem; color: var(--ink-800); font-size: 1rem; }
+    .empty-state p { margin: 0 auto; max-width: 410px; line-height: 1.55; font-size: .82rem; }
+
+    .activity-panel { position: sticky; top: 88px; max-height: calc(100vh - 105px); display: flex; flex-direction: column; }
+    .activity-context {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .6rem;
+      padding: .7rem .9rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-soft);
+      font-size: .76rem;
+    }
+    .activity-context strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-list { overflow: auto; padding: .85rem; }
+    .activity-ticket {
+      position: relative;
+      padding: .85rem .85rem .85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .activity-ticket + .activity-ticket { margin-top: .68rem; }
+    .activity-ticket::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .65rem;
+      bottom: .65rem;
+      width: 4px;
+      border-radius: 0 6px 6px 0;
+      background: var(--lab-500);
+    }
+    .activity-ticket[data-action="Lent"]::before { background: #d59600; }
+    .activity-ticket[data-action="Returned"]::before { background: #2d9a62; }
+    .activity-ticket[data-action="Removed"]::before { background: #d44f4f; }
+    .ticket-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+    .ticket-action { font-weight: 900; font-size: .82rem; }
+    .ticket-date { color: var(--ink-500); font-size: .68rem; white-space: nowrap; }
+    .ticket-item { margin-top: .3rem; color: var(--ink-700); font-size: .76rem; line-height: 1.4; }
+    .ticket-serial { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 800; }
+    .ticket-detail { margin-top: .5rem; padding: .55rem .62rem; border-radius: 9px; background: var(--surface-soft); color: var(--ink-700); font-size: .72rem; line-height: 1.5; }
+    .ticket-actor { margin-top: .45rem; color: var(--ink-500); font-size: .66rem; }
+
+    dialog {
+      width: min(94vw, 650px);
+      max-height: 92vh;
+      padding: 0;
+      border: 0;
+      border-radius: 20px;
+      color: var(--ink-900);
+      background: #fff;
+      box-shadow: 0 28px 85px rgba(0,0,0,.28);
+      overflow: hidden;
+    }
+    dialog::backdrop { background: rgba(8,24,32,.54); backdrop-filter: blur(4px); }
+    .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.15rem; border-bottom: 1px solid var(--border); }
+    .dialog-header h2 { margin: 0; font-size: 1.1rem; letter-spacing: -.02em; }
+    .dialog-header p { margin: .25rem 0 0; color: var(--ink-500); font-size: .76rem; }
+    .dialog-body { max-height: calc(92vh - 145px); overflow: auto; padding: 1rem 1.15rem; }
+    .dialog-footer { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; padding: .85rem 1.15rem; border-top: 1px solid var(--border); background: var(--surface-soft); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+    .form-grid .field + .field { margin-top: 0; }
+    .span-2 { grid-column: span 2; }
+    .photo-input-wrap { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: .85rem; align-items: center; }
+    .photo-preview {
+      width: 120px;
+      height: 95px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px dashed #afc3c7;
+      border-radius: 12px;
+      color: var(--ink-500);
+      background: var(--surface-soft);
+      font-size: .72rem;
+      text-align: center;
+    }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .segmented { display: grid; grid-template-columns: repeat(2, 1fr); padding: .25rem; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft); }
+    .segmented button { min-height: 36px; border: 0; border-radius: 8px; color: var(--ink-600); background: transparent; font-weight: 800; }
+    .segmented button.active { color: var(--lab-700); background: #fff; box-shadow: 0 2px 8px rgba(8,24,32,.08); }
+    .location-builder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: .8rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+    .location-builder .field + .field { margin-top: 0; }
+    .location-builder .owner-field { grid-column: span 2; }
+    .confirm-text { line-height: 1.65; color: var(--ink-700); }
+
+    .toast-region { position: fixed; right: 1rem; bottom: 1rem; z-index: 100; display: grid; gap: .6rem; width: min(92vw, 360px); }
+    .toast {
+      display: flex;
+      align-items: flex-start;
+      gap: .7rem;
+      padding: .85rem .9rem;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      animation: toast-in .22s ease-out;
+    }
+    .toast.success { border-left: 4px solid #2d9a62; }
+    .toast.error { border-left: 4px solid #d44f4f; }
+    .toast.info { border-left: 4px solid var(--lab-500); }
+    .toast strong { display: block; font-size: .8rem; }
+    .toast span { display: block; margin-top: .15rem; color: var(--ink-600); font-size: .73rem; line-height: 1.45; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: grid;
+      place-items: center;
+      background: rgba(245,249,250,.72);
+      backdrop-filter: blur(3px);
+    }
+    .loading-card { display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem; border: 1px solid var(--border); border-radius: 13px; background: #fff; box-shadow: var(--shadow); font-weight: 800; }
+    .spinner { width: 20px; height: 20px; border: 3px solid var(--lab-200); border-top-color: var(--lab-700); border-radius: 50%; animation: spin .75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1080px) {
+      .workspace { grid-template-columns: 1fr; }
+      .activity-panel { position: static; max-height: 620px; }
+      .login-shell { grid-template-columns: 1fr; }
+      .login-hero { min-height: 540px; }
+      .login-panel { min-height: 540px; }
+    }
+
+    @media (max-width: 760px) {
+      .app-header { height: 64px; }
+      .user-meta { display: none; }
+      .app-main { padding: .75rem; }
+      .page-heading { align-items: stretch; flex-direction: column; }
+      .heading-actions { justify-content: stretch; }
+      .heading-actions .button { flex: 1 1 auto; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+      .panel { border-radius: 16px; }
+      .detail-top { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .span-2 { grid-column: auto; }
+      .photo-input-wrap { grid-template-columns: 1fr; }
+      .photo-preview { width: 100%; height: 150px; }
+      .location-builder { grid-template-columns: 1fr; }
+      .location-builder .owner-field { grid-column: auto; }
+      .hero-features { grid-template-columns: 1fr; }
+      .login-hero { padding: 1.5rem; min-height: auto; }
+      .hero-copy { padding: 4rem 0; }
+      .login-panel { padding: 2rem 1.25rem; min-height: auto; }
+      dialog { width: 96vw; max-height: 95vh; }
+      .dialog-body { max-height: calc(95vh - 145px); }
+    }
+  </style>
+</head>
+<body>
+  <svg class="visually-hidden" aria-hidden="true">
+    <symbol id="icon-lab" viewBox="0 0 24 24"><path d="M9 2h6v2h-1v5.2l5.7 8.23A2.9 2.9 0 0 1 17.32 22H6.68a2.9 2.9 0 0 1-2.38-4.57L10 9.2V4H9V2Zm3 8.45-6.06 8.74c-.23.33.01.81.42.81h11.28c.41 0 .65-.48.42-.81L12 10.45ZM8.7 16h6.6l1.39 2H7.31l1.39-2Z"/></symbol>
+    <symbol id="icon-box" viewBox="0 0 24 24"><path d="m12 2 9 4.5v11L12 22l-9-4.5v-11L12 2Zm0 2.24L5.5 7.5 12 10.76l6.5-3.26L12 4.24Zm-7 5.1v6.92l6 3v-6.92l-6-3Zm8 9.92 6-3V9.34l-6 3v6.92Z"/></symbol>
+    <symbol id="icon-list" viewBox="0 0 24 24"><path d="M4 5h2v2H4V5Zm4 0h12v2H8V5ZM4 11h2v2H4v-2Zm4 0h12v2H8v-2ZM4 17h2v2H4v-2Zm4 0h12v2H8v-2Z"/></symbol>
+    <symbol id="icon-hash" viewBox="0 0 24 24"><path d="M9.3 3 8.6 7H5v2h3.25l-1.05 6H4v2h2.85l-.7 4h2.03l.7-4h5.97l-.7 4h2.03l.7-4H20v-2h-2.77l1.05-6H21V7h-2.37l.7-4H17.3l-.7 4h-5.97l.7-4H9.3Zm.98 6h5.97l-1.05 6H9.23l1.05-6Z"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><path d="m20.7 19.3-4.15-4.15A7.5 7.5 0 1 0 15.15 16.55l4.15 4.15 1.4-1.4ZM5 10.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17V3ZM5 19h14v2H5v-2Z"/></symbol>
+    <symbol id="icon-logout" viewBox="0 0 24 24"><path d="M4 3h8v2H6v14h6v2H4V3Zm11.59 4.59L20 12l-4.41 4.41L14.17 15l2-2H9v-2h7.17l-2-2 1.42-1.41Z"/></symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m7.41 8.59 4.59 4.58 4.59-4.58L18 10l-6 6-6-6 1.41-1.41Z"/></symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M4 17.25V21h3.75L18.81 9.94l-3.75-3.75L4 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M7 4V2h10v2h5v2H2V4h5Zm1 4h2v10H8V8Zm6 0h2v10h-2V8ZM5 8h2v12h10V8h2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8Z"/></symbol>
+    <symbol id="icon-image" viewBox="0 0 24 24"><path d="M3 4h18v16H3V4Zm2 2v9.17l3.5-3.5 2.5 2.5 4.5-4.5L19 13.17V6H5Zm0 12h14v-2l-3.5-3.5-4.5 4.5-2.5-2.5L5 18ZM8 8.5A1.5 1.5 0 1 1 8 11a1.5 1.5 0 0 1 0-3Z"/></symbol>
+    <symbol id="icon-move" viewBox="0 0 24 24"><path d="m12 2 4 4h-3v5h5V8l4 4-4 4v-3h-5v5h3l-4 4-4-4h3v-5H6v3l-4-4 4-4v3h5V6H8l4-4Z"/></symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c5.52 0 10 2.24 10 5v3H2v-3c0-2.76 4.48-5 10-5Zm0-10a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 12c-4.45 0-8 1.75-8 3v1h16v-1c0-1.25-3.55-3-8-3Z"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1 3h2v4.59l3.2 3.2-1.41 1.41L11 12.41V7Z"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6.7 5.3 5.3 5.29 5.3-5.3 1.4 1.42-5.29 5.29 5.3 5.3-1.42 1.4-5.29-5.29-5.3 5.3-1.4-1.42 5.29-5.29-5.3-5.3L6.7 5.3Z"/></symbol>
+  </svg>
+
+  <section id="loginView" class="login-shell">
+    <div class="login-hero">
+      <div class="brand-lockup">
+        <div class="brand-mark"><svg aria-hidden="true"><use href="#icon-lab"></use></svg></div>
+        <div><div class="brand-name">Lab Equipment Tracker</div><div class="brand-subtitle">Authenticated inventory and change history</div></div>
+      </div>
+
+      <div class="hero-copy">
+        <span class="eyebrow"><svg class="icon"><use href="#icon-hash"></use></svg> Serial-level accountability</span>
+        <h1>Know what the lab owns, where it is, and what changed.</h1>
+        <p>Organize Apple, AQS, and Rogers equipment. Track every device or component by serial number, current location, lending status, and dated activity tickets.</p>
+        <div class="hero-features">
+          <div class="hero-feature"><strong>Independent locations</strong><span>Every serial number can be stored in a different EC5 or E5 location.</span></div>
+          <div class="hero-feature"><strong>Complete history</strong><span>Movements, lending, returns, registration, renaming, and removal are logged.</span></div>
+          <div class="hero-feature"><strong>Protected access</strong><span>The same Firebase Authentication accounts already used by the engineering project can sign in here.</span></div>
+        </div>
+      </div>
+
+      <div class="login-footer">Built for controlled lab inventory operations.</div>
+    </div>
+
+    <div class="login-panel">
+      <form id="loginForm" class="login-card" novalidate>
+        <h2>Sign in</h2>
+        <p>Use the same Firebase Authentication email and password already used with the engineering project. Public self-registration remains disabled.</p>
+        <div id="configWarning" class="config-warning hidden"><strong>Firebase connection unavailable.</strong><br />Check the Firebase configuration and network connection.</div>
+        <div class="field">
+          <label for="loginEmail">Email address</label>
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="member@lab.ca" required />
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required />
+        </div>
+        <div class="login-actions">
+          <button id="loginButton" class="button button-primary button-block" type="submit">Sign in securely</button>
+          <button id="resetPasswordButton" class="text-button" type="button">Send password reset email</button>
+        </div>
+        <div id="loginMessage" class="inline-message" role="status"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="appView" class="app-shell hidden">
+    <header class="app-header">
+      <div class="app-brand">
+        <div class="brand-mark"><svg aria-hidden="true"><use href="#icon-lab"></use></svg></div>
+        <div><div class="brand-name">Lab Equipment Tracker</div><div class="brand-subtitle">Apple · AQS · Rogers</div></div>
+      </div>
+      <div class="user-menu">
+        <div class="user-meta"><strong id="userName">Authenticated member</strong><span id="userEmail"></span></div>
+        <button id="logoutButton" class="button button-secondary button-small" type="button"><svg class="icon"><use href="#icon-logout"></use></svg> Sign out</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="page-heading">
+        <div><h1>Equipment inventory</h1><p>Item-level inventory with independent serial locations and dated activity logs.</p></div>
+        <div class="heading-actions">
+          <button id="exportButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Export CSV</button>
+          <button id="addItemButton" class="button button-primary" type="button"><svg class="icon"><use href="#icon-plus"></use></svg> Add item</button>
+        </div>
+      </div>
+
+      <section class="summary-grid" aria-label="Inventory summary">
+        <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-list"></use></svg></div><div><span>Item records</span><strong id="summaryItems">0</strong></div></article>
+        <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-box"></use></svg></div><div><span>Total quantity</span><strong id="summaryQuantity">0</strong></div></article>
+        <article class="summary-card"><div class="summary-icon"><svg><use href="#icon-hash"></use></svg></div><div><span>Registered serials</span><strong id="summarySerials">0</strong></div></article>
+      </section>
+
+      <section class="workspace">
+        <div class="panel inventory-panel">
+          <div class="panel-header"><div><h2>Equipment table</h2><p>Expand a row to manage its serial numbers.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
+          <div class="toolbar">
+            <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search item name or comment" /></div>
+            <select id="projectFilter" aria-label="Filter by project"><option value="">All projects</option><option>Apple</option><option>AQS</option><option>Rogers</option></select>
+            <select id="typeFilter" aria-label="Filter by item type"><option value="">All item types</option><option>Device</option><option>Component</option></select>
+          </div>
+          <div id="inventoryContent" class="table-wrap"></div>
+        </div>
+
+        <aside class="panel activity-panel" aria-label="Activity logs">
+          <div class="panel-header"><div><h2>Activity log</h2><p>Serial-number-based change tickets.</p></div></div>
+          <div class="activity-context"><strong id="activityContext">All recent activity</strong><button id="clearLogFilter" class="button button-ghost button-small hidden" type="button">Show all</button></div>
+          <div id="activityList" class="activity-list"></div>
+        </aside>
+      </section>
+    </main>
+  </section>
+
+  <dialog id="itemDialog">
+    <form id="itemForm" method="dialog">
+      <div class="dialog-header"><div><h2 id="itemDialogTitle">Add equipment item</h2><p>Create the item first, then expand it to add serial numbers.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="itemDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field"><label for="itemProject">Project Name</label><select id="itemProject" required><option value="">Select project</option><option>Apple</option><option>AQS</option><option>Rogers</option></select></div>
+          <div class="field"><label for="itemType">Item Type</label><select id="itemType" required><option value="">Select type</option><option>Device</option><option>Component</option></select></div>
+          <div class="field span-2"><label for="itemName">Item name</label><input id="itemName" maxlength="160" placeholder="Example: Rohde & Schwarz spectrum analyzer" required /></div>
+          <div class="field"><label for="itemQuantity">Quantity</label><input id="itemQuantity" type="number" min="1" max="10000" step="1" value="1" required /><small>Serial registrations cannot exceed this number.</small></div>
+          <div class="field"><label>Photo</label><div class="photo-input-wrap"><div id="itemPhotoPreview" class="photo-preview"><span>No photo selected</span></div><div><input id="itemPhoto" type="file" accept="image/*" /><small>Images are compressed and stored as Base64. Maximum target size: 450 KB.</small><button id="removePhotoButton" class="button button-ghost button-small hidden" type="button">Remove photo</button></div></div></div>
+          <div class="field span-2"><label for="itemComment">Item comment</label><textarea id="itemComment" maxlength="4000" placeholder="Purpose, configuration notes, accessories, known limitations, or other item-level information"></textarea></div>
+        </div>
+        <div id="itemFormMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="itemDialog">Cancel</button><button id="saveItemButton" class="button button-primary" type="submit">Save item</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="serialDialog">
+    <form id="serialForm" method="dialog">
+      <div class="dialog-header"><div><h2>Add serial numbers</h2><p id="serialDialogSubtitle"></p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="serialDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div class="field"><label>Entry mode</label><div class="segmented"><button id="singleSerialMode" class="active" type="button">One serial</button><button id="bulkSerialMode" type="button">Bulk list</button></div></div>
+        <div id="singleSerialFields" class="field"><label for="singleSerialInput">Serial number</label><input id="singleSerialInput" maxlength="160" placeholder="Enter one serial number" /></div>
+        <div id="bulkSerialFields" class="field hidden"><label for="bulkSerialInput">Serial numbers</label><textarea id="bulkSerialInput" placeholder="SN-001, SN-002, SN-003"></textarea><small>Separate values with commas, semicolons, tabs, spaces, or new lines.</small></div>
+        <div class="field"><label>Initial location for these serials</label><div id="serialLocationBuilder" class="location-builder"></div></div>
+        <div class="field"><label for="serialDate">Registration date</label><input id="serialDate" type="datetime-local" required /></div>
+        <div id="serialFormMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="serialDialog">Cancel</button><button id="saveSerialButton" class="button button-primary" type="submit">Add serial number</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="renameSerialDialog">
+    <form id="renameSerialForm" method="dialog">
+      <div class="dialog-header"><div><h2>Edit serial number</h2><p>Location changes are recorded through the Move action.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="renameSerialDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div class="field"><label for="renameSerialInput">Serial number</label><input id="renameSerialInput" maxlength="160" required /></div>
+        <div class="field"><label for="renameSerialDate">Change date</label><input id="renameSerialDate" type="datetime-local" required /></div>
+        <div id="renameSerialMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="renameSerialDialog">Cancel</button><button class="button button-primary" type="submit">Save serial</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="actionDialog">
+    <form id="actionForm" method="dialog">
+      <div class="dialog-header"><div><h2 id="actionDialogTitle">Record action</h2><p id="actionDialogSubtitle"></p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="actionDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div id="moveFields" class="hidden">
+          <div class="field"><label>From location</label><div id="fromLocationBuilder" class="location-builder"></div></div>
+          <div class="field"><label>To location</label><div id="toLocationBuilder" class="location-builder"></div></div>
+        </div>
+        <div id="lendFields" class="hidden"><div class="field"><label for="memberNameInput">Member name</label><input id="memberNameInput" maxlength="160" placeholder="Name of receiving member" /></div></div>
+        <div id="returnFields" class="hidden"><div class="field"><label>Returned to location</label><div id="returnLocationBuilder" class="location-builder"></div></div></div>
+        <div class="field"><label for="actionDate">Action date</label><input id="actionDate" type="datetime-local" required /></div>
+        <div id="actionFormMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="actionDialog">Cancel</button><button id="saveActionButton" class="button button-primary" type="submit">Record action</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog">
+    <form id="confirmForm" method="dialog">
+      <div class="dialog-header"><div><h2 id="confirmTitle">Confirm action</h2></div><button class="button button-ghost button-icon" type="button" data-close-dialog="confirmDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body"><p id="confirmText" class="confirm-text"></p><div id="confirmDateField" class="field hidden"><label for="confirmDate">Effective date</label><input id="confirmDate" type="datetime-local" /></div><div id="confirmMessage" class="inline-message" role="status"></div></div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="confirmDialog">Cancel</button><button id="confirmButton" class="button button-danger" type="submit">Confirm</button></div>
+    </form>
+  </dialog>
+
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-card"><span class="spinner" aria-hidden="true"></span><span id="loadingText">Working…</span></div></div>
+
+  <script type="module">
+    import {
+      SITES,
+      addSerialNumbers,
+      createEquipment,
+      deleteEquipmentRecord,
+      firebaseConfigured,
+      getAuthorizationProfile,
+      getInventoryExportRows,
+      lendSerialNumber,
+      loginWithEmail,
+      logout,
+      moveSerialNumber,
+      observeAuthentication,
+      removeSerialNumber,
+      renameSerialNumber,
+      returnSerialNumber,
+      sendResetEmail,
+      subscribeActivityLogs,
+      subscribeEquipment,
+      subscribeSerials,
+      updateEquipmentRecord,
+    } from "./firebase-config.js";
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    const state = {
+      user: null,
+      profile: null,
+      equipment: [],
+      logs: [],
+      serialsByItem: new Map(),
+      serialSubscriptions: new Map(),
+      expandedItems: new Set(),
+      selectedLogFilter: null,
+      itemBeingEdited: null,
+      serialContextItem: null,
+      serialBeingEdited: null,
+      actionContext: null,
+      confirmAction: null,
+      itemPhotoBase64: "",
+      removeCurrentPhoto: false,
+      serialMode: "single",
+      equipmentUnsubscribe: null,
+      logsUnsubscribe: null,
+    };
+
+    const elements = {
+      loginView: $("#loginView"),
+      appView: $("#appView"),
+      configWarning: $("#configWarning"),
+      loginForm: $("#loginForm"),
+      loginEmail: $("#loginEmail"),
+      loginPassword: $("#loginPassword"),
+      loginButton: $("#loginButton"),
+      resetPasswordButton: $("#resetPasswordButton"),
+      loginMessage: $("#loginMessage"),
+      logoutButton: $("#logoutButton"),
+      userName: $("#userName"),
+      userEmail: $("#userEmail"),
+      addItemButton: $("#addItemButton"),
+      exportButton: $("#exportButton"),
+      searchInput: $("#searchInput"),
+      projectFilter: $("#projectFilter"),
+      typeFilter: $("#typeFilter"),
+      inventoryContent: $("#inventoryContent"),
+      resultCount: $("#resultCount"),
+      summaryItems: $("#summaryItems"),
+      summaryQuantity: $("#summaryQuantity"),
+      summarySerials: $("#summarySerials"),
+      activityList: $("#activityList"),
+      activityContext: $("#activityContext"),
+      clearLogFilter: $("#clearLogFilter"),
+      itemDialog: $("#itemDialog"),
+      itemForm: $("#itemForm"),
+      itemDialogTitle: $("#itemDialogTitle"),
+      itemProject: $("#itemProject"),
+      itemType: $("#itemType"),
+      itemName: $("#itemName"),
+      itemQuantity: $("#itemQuantity"),
+      itemPhoto: $("#itemPhoto"),
+      itemPhotoPreview: $("#itemPhotoPreview"),
+      removePhotoButton: $("#removePhotoButton"),
+      itemComment: $("#itemComment"),
+      itemFormMessage: $("#itemFormMessage"),
+      saveItemButton: $("#saveItemButton"),
+      serialDialog: $("#serialDialog"),
+      serialForm: $("#serialForm"),
+      serialDialogSubtitle: $("#serialDialogSubtitle"),
+      singleSerialMode: $("#singleSerialMode"),
+      bulkSerialMode: $("#bulkSerialMode"),
+      singleSerialFields: $("#singleSerialFields"),
+      bulkSerialFields: $("#bulkSerialFields"),
+      singleSerialInput: $("#singleSerialInput"),
+      bulkSerialInput: $("#bulkSerialInput"),
+      serialLocationBuilder: $("#serialLocationBuilder"),
+      serialDate: $("#serialDate"),
+      serialFormMessage: $("#serialFormMessage"),
+      saveSerialButton: $("#saveSerialButton"),
+      renameSerialDialog: $("#renameSerialDialog"),
+      renameSerialForm: $("#renameSerialForm"),
+      renameSerialInput: $("#renameSerialInput"),
+      renameSerialDate: $("#renameSerialDate"),
+      renameSerialMessage: $("#renameSerialMessage"),
+      actionDialog: $("#actionDialog"),
+      actionForm: $("#actionForm"),
+      actionDialogTitle: $("#actionDialogTitle"),
+      actionDialogSubtitle: $("#actionDialogSubtitle"),
+      moveFields: $("#moveFields"),
+      lendFields: $("#lendFields"),
+      returnFields: $("#returnFields"),
+      fromLocationBuilder: $("#fromLocationBuilder"),
+      toLocationBuilder: $("#toLocationBuilder"),
+      returnLocationBuilder: $("#returnLocationBuilder"),
+      memberNameInput: $("#memberNameInput"),
+      actionDate: $("#actionDate"),
+      actionFormMessage: $("#actionFormMessage"),
+      saveActionButton: $("#saveActionButton"),
+      confirmDialog: $("#confirmDialog"),
+      confirmForm: $("#confirmForm"),
+      confirmTitle: $("#confirmTitle"),
+      confirmText: $("#confirmText"),
+      confirmDateField: $("#confirmDateField"),
+      confirmDate: $("#confirmDate"),
+      confirmMessage: $("#confirmMessage"),
+      confirmButton: $("#confirmButton"),
+      toastRegion: $("#toastRegion"),
+      loadingOverlay: $("#loadingOverlay"),
+      loadingText: $("#loadingText"),
+    };
+
+    function icon(name, className = "icon") {
+      return `<svg class="${className}" aria-hidden="true"><use href="#icon-${name}"></use></svg>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setInlineMessage(element, message = "", type = "error") {
+      element.className = "inline-message";
+      element.textContent = "";
+      if (message) {
+        element.classList.add(type);
+        element.textContent = message;
+      }
+    }
+
+    function toast(title, message, type = "success") {
+      const entry = document.createElement("div");
+      entry.className = `toast ${type}`;
+      entry.innerHTML = `<div>${type === "error" ? icon("close") : type === "info" ? icon("clock") : icon("lab")}</div><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span></div>`;
+      elements.toastRegion.append(entry);
+      window.setTimeout(() => entry.remove(), 4500);
+    }
+
+    function setLoading(isLoading, text = "Working…") {
+      elements.loadingText.textContent = text;
+      elements.loadingOverlay.classList.toggle("hidden", !isLoading);
+    }
+
+    function firebaseErrorMessage(error) {
+      const code = error?.code || "";
+      const messages = {
+        "auth/invalid-credential": "Incorrect email or password.",
+        "auth/invalid-email": "Enter a valid email address.",
+        "auth/too-many-requests": "Too many attempts. Try again later or reset the password.",
+        "auth/user-disabled": "This account has been disabled.",
+        "auth/network-request-failed": "The network request failed. Check the connection and try again.",
+        "permission-denied": "Your account does not have permission to perform this action.",
+        "permission_denied": "Your account does not have permission to perform this action.",
+        "PERMISSION_DENIED": "Your account does not have permission to perform this action.",
+      };
+      return messages[code] || error?.message || "Something went wrong.";
+    }
+
+    function nowLocalInputValue() {
+      const date = new Date();
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
+    }
+
+    function firebaseDate(value) {
+      if (!value) return null;
+      if (typeof value.toDate === "function") return value.toDate();
+      if (value.seconds) return new Date(value.seconds * 1000);
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function formatDateTime(value) {
+      const date = firebaseDate(value);
+      if (!date) return "Date unavailable";
+      return new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(date);
+    }
+
+    function formatLocation(location) {
+      if (!location?.site) return "Location not assigned";
+      const parts = [location.site, location.subLocation];
+      if (location.officeOwner) parts.push(location.officeOwner);
+      return parts.filter(Boolean).join(" — ");
+    }
+
+    function locationSummaryHtml(location) {
+      if (!location?.site) return `<span class="location-main">Not assigned</span>`;
+      const detail = [location.subLocation, location.officeOwner].filter(Boolean).join(" · ");
+      return `<span class="location-main">${escapeHtml(location.site)}</span><span class="location-sub">${escapeHtml(detail)}</span>`;
+    }
+
+    function buildLocationFields(container, prefix, initial = {}, disabled = false) {
+      container.innerHTML = `
+        <div class="field"><label for="${prefix}Site">Site</label><select id="${prefix}Site" ${disabled ? "disabled" : ""}><option value="">Select site</option><option value="EC5">EC5</option><option value="E5">E5</option></select></div>
+        <div class="field"><label for="${prefix}SubLocation">Sub-location</label><select id="${prefix}SubLocation" ${disabled ? "disabled" : ""}><option value="">Select sub-location</option></select></div>
+        <div id="${prefix}OwnerField" class="field owner-field hidden"><label for="${prefix}Owner">Office owner's name</label><input id="${prefix}Owner" maxlength="120" ${disabled ? "disabled" : ""} placeholder="Enter person's name" /></div>`;
+
+      const siteSelect = $(`#${prefix}Site`, container);
+      const subSelect = $(`#${prefix}SubLocation`, container);
+      const ownerField = $(`#${prefix}OwnerField`, container);
+      const ownerInput = $(`#${prefix}Owner`, container);
+
+      const refreshSubLocations = (selected = "") => {
+        const options = SITES[siteSelect.value] || [];
+        subSelect.innerHTML = `<option value="">Select sub-location</option>${options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("")}`;
+        if (options.includes(selected)) subSelect.value = selected;
+        refreshOwner();
+      };
+
+      const refreshOwner = () => {
+        const visible = siteSelect.value === "E5" && subSelect.value === "Someone Else's Office";
+        ownerField.classList.toggle("hidden", !visible);
+        if (!visible) ownerInput.value = "";
+      };
+
+      siteSelect.addEventListener("change", () => refreshSubLocations());
+      subSelect.addEventListener("change", refreshOwner);
+      siteSelect.value = initial.site || "";
+      refreshSubLocations(initial.subLocation || "");
+      ownerInput.value = initial.officeOwner || "";
+      refreshOwner();
+    }
+
+    function readLocation(container, prefix) {
+      return {
+        site: $(`#${prefix}Site`, container)?.value || "",
+        subLocation: $(`#${prefix}SubLocation`, container)?.value || "",
+        officeOwner: $(`#${prefix}Owner`, container)?.value.trim() || "",
+      };
+    }
+
+    function filteredEquipment() {
+      const search = elements.searchInput.value.trim().toLowerCase();
+      const project = elements.projectFilter.value;
+      const type = elements.typeFilter.value;
+      return state.equipment.filter((item) => {
+        const matchesSearch = !search || `${item.name} ${item.comment || ""}`.toLowerCase().includes(search);
+        return matchesSearch && (!project || item.projectName === project) && (!type || item.itemType === type);
+      });
+    }
+
+    function renderSummary() {
+      elements.summaryItems.textContent = state.equipment.length.toLocaleString();
+      elements.summaryQuantity.textContent = state.equipment.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString();
+      elements.summarySerials.textContent = state.equipment.reduce((sum, item) => sum + Number(item.serialCount || 0), 0).toLocaleString();
+    }
+
+    function emptyInventoryHtml(filtered = false) {
+      return `<div class="empty-state">${icon("box")}<h3>${filtered ? "No matching equipment" : "No equipment yet"}</h3><p>${filtered ? "Change the search or filters to see other records." : "Create the first item. Its serial numbers can then be added from the expanded row."}</p></div>`;
+    }
+
+    function renderInventory() {
+      const items = filteredEquipment();
+      elements.resultCount.textContent = `${items.length} result${items.length === 1 ? "" : "s"}`;
+      renderSummary();
+
+      if (items.length === 0) {
+        elements.inventoryContent.innerHTML = emptyInventoryHtml(Boolean(state.equipment.length));
+        return;
+      }
+
+      elements.inventoryContent.innerHTML = `
+        <table class="inventory-table">
+          <thead><tr><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
+          <tbody>${items.map(renderItemRows).join("")}</tbody>
+        </table>`;
+
+      bindInventoryActions();
+    }
+
+    function renderItemRows(item) {
+      const expanded = state.expandedItems.has(item.id);
+      const photo = item.photoBase64
+        ? `<img class="item-photo" src="${escapeHtml(item.photoBase64)}" alt="${escapeHtml(item.name)}" />`
+        : `<div class="photo-placeholder">${icon("image")}</div>`;
+      const commentSummary = item.comment ? escapeHtml(item.comment.replace(/\s+/g, " ")) : "No item comment";
+      return `
+        <tr class="inventory-row ${expanded ? "expanded" : ""}" data-item-id="${item.id}">
+          <td class="photo-cell">${photo}</td>
+          <td><div class="item-name">${escapeHtml(item.name)}</div><div class="item-subtext">${commentSummary}</div></td>
+          <td><span class="badge badge-project">${escapeHtml(item.projectName)}</span></td>
+          <td><span class="badge ${item.itemType === "Device" ? "badge-device" : "badge-component"}">${escapeHtml(item.itemType)}</span></td>
+          <td><span class="quantity-value">${Number(item.quantity || 0).toLocaleString()}</span><span class="quantity-sub">physical units</span></td>
+          <td><span class="quantity-value">${Number(item.serialCount || 0).toLocaleString()}</span><span class="quantity-sub">registered</span></td>
+          <td class="actions-cell"><div class="row-actions"><button class="button button-ghost button-icon expand-item" type="button" data-item-id="${item.id}" aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(item.name)}">${icon("chevron", "icon chevron")}</button></div></td>
+        </tr>
+        ${expanded ? `<tr class="detail-row"><td colspan="7">${renderItemDetail(item)}</td></tr>` : ""}`;
+    }
+
+    function renderItemDetail(item) {
+      const serials = state.serialsByItem.get(item.id);
+      const photo = item.photoBase64 ? `<img class="detail-photo" src="${escapeHtml(item.photoBase64)}" alt="${escapeHtml(item.name)}" />` : `<div class="detail-card empty-state" style="padding:2rem">${icon("image")}<h3>No item photo</h3></div>`;
+      return `<div class="item-detail">
+        <div class="detail-top">
+          <div>${photo}</div>
+          <div class="detail-card">
+            <h3>Item comment</h3>
+            <p class="comment-text">${escapeHtml(item.comment || "No comment has been added for this item.")}</p>
+            <div class="detail-meta">
+              <div class="meta-box"><span>Project</span><strong>${escapeHtml(item.projectName)}</strong></div>
+              <div class="meta-box"><span>Type</span><strong>${escapeHtml(item.itemType)}</strong></div>
+              <div class="meta-box"><span>Quantity</span><strong>${Number(item.quantity || 0).toLocaleString()}</strong></div>
+              <div class="meta-box"><span>Registered</span><strong>${Number(item.serialCount || 0).toLocaleString()}</strong></div>
+            </div>
+            <div class="detail-actions">
+              <button class="button button-secondary button-small edit-item" type="button" data-item-id="${item.id}">${icon("edit")} Edit item</button>
+              <button class="button button-danger button-small delete-item" type="button" data-item-id="${item.id}">${icon("trash")} Delete item</button>
+            </div>
+          </div>
+        </div>
+        <section class="serial-section">
+          <div class="serial-heading"><div><h3>Serial numbers</h3><span>Each serial has its own location and history.</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
+          ${renderSerialTable(item, serials)}
+        </section>
+      </div>`;
+    }
+
+    function renderSerialTable(item, serials) {
+      if (!serials) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading serial numbers</h3></div>`;
+      if (serials.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("hash")}<h3>No serial numbers registered</h3><p>Add them one at a time or paste a separated bulk list. One initial location is applied to that entry batch and can later be changed per serial.</p></div>`;
+      return `<div class="table-wrap"><table class="serial-table"><thead><tr><th>Serial number</th><th>Current location</th><th>Status</th><th></th></tr></thead><tbody>${serials.map((serial) => {
+        const loaned = Boolean(serial.loan?.isLoaned);
+        return `<tr>
+          <td><span class="serial-number">${escapeHtml(serial.serialNumber)}</span></td>
+          <td>${locationSummaryHtml(serial.currentLocation)}</td>
+          <td>${loaned ? `<span class="badge badge-loaned">Lent to ${escapeHtml(serial.loan.memberName)}</span>` : `<span class="badge badge-available">Available</span>`}</td>
+          <td><div class="serial-actions">
+            <button class="button button-ghost button-small view-logs" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("clock")} Logs</button>
+            <button class="button button-secondary button-small move-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" ${loaned ? "disabled title=\"Return before moving\"" : ""}>${icon("move")} Move</button>
+            <button class="button ${loaned ? "button-primary" : "button-secondary"} button-small ${loaned ? "return-serial" : "lend-serial"}" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("user")} ${loaned ? "Return" : "Lend"}</button>
+            <button class="button button-ghost button-icon button-small rename-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Edit serial">${icon("edit")}</button>
+            <button class="button button-ghost button-icon button-small remove-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Remove serial">${icon("trash")}</button>
+          </div></td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+    }
+
+    function bindInventoryActions() {
+      $$(".inventory-row", elements.inventoryContent).forEach((row) => row.addEventListener("click", (event) => {
+        if (event.target.closest("button, a, input, select, textarea")) return;
+        toggleItem(row.dataset.itemId);
+      }));
+      $$(".expand-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => toggleItem(button.dataset.itemId)));
+      $$(".edit-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openItemDialog(findItem(button.dataset.itemId))));
+      $$(".delete-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => requestDeleteItem(findItem(button.dataset.itemId))));
+      $$(".add-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openSerialDialog(findItem(button.dataset.itemId))));
+      $$(".view-logs", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => selectSerialLogs(button.dataset.itemId, button.dataset.serialId)));
+      $$(".move-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openActionDialog("move", button.dataset.itemId, button.dataset.serialId)));
+      $$(".lend-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openActionDialog("lend", button.dataset.itemId, button.dataset.serialId)));
+      $$(".return-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openActionDialog("return", button.dataset.itemId, button.dataset.serialId)));
+      $$(".rename-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openRenameSerialDialog(button.dataset.itemId, button.dataset.serialId)));
+      $$(".remove-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => requestRemoveSerial(button.dataset.itemId, button.dataset.serialId)));
+    }
+
+    function findItem(itemId) {
+      return state.equipment.find((item) => item.id === itemId);
+    }
+
+    function findSerial(itemId, serialId) {
+      return (state.serialsByItem.get(itemId) || []).find((serial) => serial.id === serialId);
+    }
+
+    function toggleItem(itemId) {
+      if (state.expandedItems.has(itemId)) {
+        state.expandedItems.delete(itemId);
+        const unsubscribe = state.serialSubscriptions.get(itemId);
+        if (unsubscribe) unsubscribe();
+        state.serialSubscriptions.delete(itemId);
+        state.serialsByItem.delete(itemId);
+      } else {
+        state.expandedItems.add(itemId);
+        subscribeToItemSerials(itemId);
+      }
+      renderInventory();
+    }
+
+    function subscribeToItemSerials(itemId) {
+      if (state.serialSubscriptions.has(itemId)) return;
+      const unsubscribe = subscribeSerials(
+        itemId,
+        (serials) => {
+          state.serialsByItem.set(itemId, serials);
+          renderInventory();
+        },
+        (error) => toast("Serials could not load", firebaseErrorMessage(error), "error")
+      );
+      state.serialSubscriptions.set(itemId, unsubscribe);
+    }
+
+    function logDetail(log) {
+      const details = log.details || {};
+      switch (log.actionType) {
+        case "Registered": return `Initial location: ${formatLocation(details.toLocation)}`;
+        case "Moved": return `${formatLocation(details.fromLocation)} → ${formatLocation(details.toLocation)}`;
+        case "Lent": return `Lent to ${details.memberName || "member"} from ${formatLocation(details.fromLocation)}`;
+        case "Returned": return `Returned by ${details.memberName || "member"} to ${formatLocation(details.toLocation)}`;
+        case "Serial renamed": return `${details.previousSerialNumber || "Previous serial"} → ${details.newSerialNumber || log.serialNumber}`;
+        case "Removed": return `Removed from inventory. Last location: ${formatLocation(details.fromLocation)}`;
+        default: return "Activity recorded.";
+      }
+    }
+
+    function renderActivity() {
+      let logs = state.logs;
+      if (state.selectedLogFilter) {
+        logs = logs.filter((log) => log.itemId === state.selectedLogFilter.itemId && log.serialId === state.selectedLogFilter.serialId);
+        elements.activityContext.textContent = `${state.selectedLogFilter.itemName} · ${state.selectedLogFilter.serialNumber}`;
+        elements.clearLogFilter.classList.remove("hidden");
+      } else {
+        elements.activityContext.textContent = "All recent activity";
+        elements.clearLogFilter.classList.add("hidden");
+      }
+
+      if (logs.length === 0) {
+        elements.activityList.innerHTML = `<div class="empty-state">${icon("clock")}<h3>No activity tickets</h3><p>${state.selectedLogFilter ? "No logged changes were found for this serial number." : "Serial registration, moves, lending, returns, and other serial changes will appear here."}</p></div>`;
+        return;
+      }
+
+      elements.activityList.innerHTML = logs.map((log) => `<article class="activity-ticket" data-action="${escapeHtml(log.actionType)}">
+        <div class="ticket-top"><span class="ticket-action">${escapeHtml(log.actionType)}</span><time class="ticket-date">${escapeHtml(formatDateTime(log.occurredAt))}</time></div>
+        <div class="ticket-item">${escapeHtml(log.itemName)} · <span class="ticket-serial">${escapeHtml(log.serialNumber)}</span></div>
+        <div class="ticket-detail">${escapeHtml(logDetail(log))}</div>
+        <div class="ticket-actor">${escapeHtml(log.projectName)} · logged by ${escapeHtml(log.actorEmail || "authorized user")}</div>
+      </article>`).join("");
+    }
+
+    function selectSerialLogs(itemId, serialId) {
+      const item = findItem(itemId);
+      const serial = findSerial(itemId, serialId);
+      if (!item || !serial) return;
+      state.selectedLogFilter = { itemId, serialId, itemName: item.name, serialNumber: serial.serialNumber };
+      renderActivity();
+      if (window.innerWidth < 1080) document.querySelector(".activity-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function openItemDialog(item = null) {
+      state.itemBeingEdited = item;
+      state.itemPhotoBase64 = item?.photoBase64 || "";
+      state.removeCurrentPhoto = false;
+      elements.itemForm.reset();
+      elements.itemDialogTitle.textContent = item ? "Edit equipment item" : "Add equipment item";
+      elements.saveItemButton.textContent = item ? "Save changes" : "Save item";
+      elements.itemProject.value = item?.projectName || "";
+      elements.itemType.value = item?.itemType || "";
+      elements.itemName.value = item?.name || "";
+      elements.itemQuantity.value = item?.quantity || 1;
+      elements.itemComment.value = item?.comment || "";
+      elements.itemPhoto.value = "";
+      setInlineMessage(elements.itemFormMessage);
+      updatePhotoPreview();
+      elements.itemDialog.showModal();
+    }
+
+    function updatePhotoPreview() {
+      if (state.itemPhotoBase64 && !state.removeCurrentPhoto) {
+        elements.itemPhotoPreview.innerHTML = `<img src="${escapeHtml(state.itemPhotoBase64)}" alt="Selected item preview" />`;
+        elements.removePhotoButton.classList.remove("hidden");
+      } else {
+        elements.itemPhotoPreview.innerHTML = "<span>No photo selected</span>";
+        elements.removePhotoButton.classList.add("hidden");
+      }
+    }
+
+    async function compressImage(file) {
+      if (!file.type.startsWith("image/")) throw new Error("Select a valid image file.");
+      if (file.size > 15 * 1024 * 1024) throw new Error("The source image is too large. Use an image below 15 MB.");
+
+      const bitmap = await createImageBitmap(file);
+      const maxDimension = 900;
+      const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+
+      let quality = 0.82;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      const estimatedBytes = (value) => Math.ceil((value.length - value.indexOf(",") - 1) * 0.75);
+      while (estimatedBytes(dataUrl) > 450 * 1024 && quality > 0.42) {
+        quality -= 0.08;
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+      }
+      if (estimatedBytes(dataUrl) > 520 * 1024) {
+        throw new Error("The compressed image is still too large. Choose a smaller or simpler image.");
+      }
+      return dataUrl;
+    }
+
+    function openSerialDialog(item) {
+      state.serialContextItem = item;
+      state.serialMode = "single";
+      elements.serialForm.reset();
+      elements.serialDialogSubtitle.textContent = `${item.name} · ${item.serialCount || 0} of ${item.quantity} serials registered`;
+      elements.serialDate.value = nowLocalInputValue();
+      buildLocationFields(elements.serialLocationBuilder, "serialLocation", { site: "EC5", subLocation: "Shared Space" });
+      setSerialMode("single");
+      setInlineMessage(elements.serialFormMessage);
+      elements.serialDialog.showModal();
+    }
+
+    function setSerialMode(mode) {
+      state.serialMode = mode;
+      const single = mode === "single";
+      elements.singleSerialMode.classList.toggle("active", single);
+      elements.bulkSerialMode.classList.toggle("active", !single);
+      elements.singleSerialFields.classList.toggle("hidden", !single);
+      elements.bulkSerialFields.classList.toggle("hidden", single);
+      elements.saveSerialButton.textContent = single ? "Add serial number" : "Add serial numbers";
+    }
+
+    function parseBulkSerials(value) {
+      return [...new Set(String(value).split(/[\n\r,;|\t]+/g).map((entry) => entry.trim()).filter(Boolean))];
+    }
+
+    function openRenameSerialDialog(itemId, serialId) {
+      const item = findItem(itemId);
+      const serial = findSerial(itemId, serialId);
+      if (!item || !serial) return;
+      state.serialContextItem = item;
+      state.serialBeingEdited = serial;
+      elements.renameSerialForm.reset();
+      elements.renameSerialInput.value = serial.serialNumber;
+      elements.renameSerialDate.value = nowLocalInputValue();
+      setInlineMessage(elements.renameSerialMessage);
+      elements.renameSerialDialog.showModal();
+    }
+
+    function openActionDialog(action, itemId, serialId) {
+      const item = findItem(itemId);
+      const serial = findSerial(itemId, serialId);
+      if (!item || !serial) return;
+      state.actionContext = { action, item, serial };
+      elements.actionForm.reset();
+      elements.moveFields.classList.toggle("hidden", action !== "move");
+      elements.lendFields.classList.toggle("hidden", action !== "lend");
+      elements.returnFields.classList.toggle("hidden", action !== "return");
+      elements.actionDate.value = nowLocalInputValue();
+      setInlineMessage(elements.actionFormMessage);
+
+      if (action === "move") {
+        elements.actionDialogTitle.textContent = "Move serial number";
+        elements.actionDialogSubtitle.textContent = `${item.name} · ${serial.serialNumber}`;
+        elements.saveActionButton.textContent = "Record movement";
+        buildLocationFields(elements.fromLocationBuilder, "fromLocation", serial.currentLocation, true);
+        buildLocationFields(elements.toLocationBuilder, "toLocation", serial.currentLocation);
+      } else if (action === "lend") {
+        elements.actionDialogTitle.textContent = "Lend serial number";
+        elements.actionDialogSubtitle.textContent = `${item.name} · ${serial.serialNumber}`;
+        elements.saveActionButton.textContent = "Record lending";
+      } else {
+        elements.actionDialogTitle.textContent = "Return serial number";
+        elements.actionDialogSubtitle.textContent = `${item.name} · ${serial.serialNumber} · currently with ${serial.loan?.memberName || "member"}`;
+        elements.saveActionButton.textContent = "Record return";
+        buildLocationFields(elements.returnLocationBuilder, "returnLocation", serial.currentLocation);
+      }
+      elements.actionDialog.showModal();
+    }
+
+    function requestDeleteItem(item) {
+      state.confirmAction = { type: "delete-item", item };
+      elements.confirmTitle.textContent = "Delete equipment item";
+      elements.confirmText.textContent = `Delete “${item.name}” and its active serial records? Historical activity tickets will be preserved for audit purposes. This cannot be undone.`;
+      elements.confirmDateField.classList.add("hidden");
+      elements.confirmButton.textContent = "Delete item";
+      setInlineMessage(elements.confirmMessage);
+      elements.confirmDialog.showModal();
+    }
+
+    function requestRemoveSerial(itemId, serialId) {
+      const item = findItem(itemId);
+      const serial = findSerial(itemId, serialId);
+      if (!item || !serial) return;
+      state.confirmAction = { type: "remove-serial", item, serial };
+      elements.confirmTitle.textContent = "Remove serial number";
+      elements.confirmText.textContent = `Remove serial “${serial.serialNumber}” from “${item.name}”? A dated removal ticket will remain in the activity log.`;
+      elements.confirmDateField.classList.remove("hidden");
+      elements.confirmDate.value = nowLocalInputValue();
+      elements.confirmButton.textContent = "Remove serial";
+      setInlineMessage(elements.confirmMessage);
+      elements.confirmDialog.showModal();
+    }
+
+    function downloadCsv(rows) {
+      const columns = [
+        ["Project", "projectName"], ["Item Type", "itemType"], ["Item", "itemName"], ["Quantity", "quantity"],
+        ["Comment", "comment"], ["Serial Number", "serialNumber"], ["Location", "location"], ["Status", "lendingStatus"], ["Member", "memberName"],
+      ];
+      const quote = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+      const csv = [columns.map(([label]) => quote(label)).join(","), ...rows.map((row) => columns.map(([, key]) => quote(row[key])).join(","))].join("\r\n");
+      const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `lab-equipment-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.append(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+    }
+
+    async function startDataSubscriptions() {
+      state.equipmentUnsubscribe?.();
+      state.logsUnsubscribe?.();
+      state.equipmentUnsubscribe = subscribeEquipment(
+        (items) => { state.equipment = items; renderInventory(); },
+        (error) => toast("Inventory could not load", firebaseErrorMessage(error), "error")
+      );
+      state.logsUnsubscribe = subscribeActivityLogs(
+        (logs) => { state.logs = logs; renderActivity(); },
+        (error) => toast("Activity log could not load", firebaseErrorMessage(error), "error")
+      );
+    }
+
+    function clearDataSubscriptions() {
+      state.equipmentUnsubscribe?.();
+      state.logsUnsubscribe?.();
+      state.serialSubscriptions.forEach((unsubscribe) => unsubscribe());
+      state.equipmentUnsubscribe = null;
+      state.logsUnsubscribe = null;
+      state.serialSubscriptions.clear();
+      state.serialsByItem.clear();
+      state.expandedItems.clear();
+      state.equipment = [];
+      state.logs = [];
+      state.selectedLogFilter = null;
+    }
+
+    elements.loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!firebaseConfigured) return setInlineMessage(elements.loginMessage, "Firebase is not available.", "error");
+      setInlineMessage(elements.loginMessage);
+      elements.loginButton.disabled = true;
+      elements.loginButton.textContent = "Signing in…";
+      try {
+        await loginWithEmail(elements.loginEmail.value, elements.loginPassword.value);
+      } catch (error) {
+        setInlineMessage(elements.loginMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        elements.loginButton.disabled = false;
+        elements.loginButton.textContent = "Sign in securely";
+      }
+    });
+
+    elements.resetPasswordButton.addEventListener("click", async () => {
+      const email = elements.loginEmail.value.trim();
+      if (!email) return setInlineMessage(elements.loginMessage, "Enter your email address first.", "error");
+      try {
+        await sendResetEmail(email);
+        setInlineMessage(elements.loginMessage, "Password reset email sent.", "success");
+      } catch (error) {
+        setInlineMessage(elements.loginMessage, firebaseErrorMessage(error), "error");
+      }
+    });
+
+    elements.logoutButton.addEventListener("click", async () => {
+      try { await logout(); } catch (error) { toast("Sign out failed", firebaseErrorMessage(error), "error"); }
+    });
+
+    elements.addItemButton.addEventListener("click", () => openItemDialog());
+    elements.searchInput.addEventListener("input", renderInventory);
+    elements.projectFilter.addEventListener("change", renderInventory);
+    elements.typeFilter.addEventListener("change", renderInventory);
+    elements.clearLogFilter.addEventListener("click", () => { state.selectedLogFilter = null; renderActivity(); });
+
+    elements.itemPhoto.addEventListener("change", async () => {
+      const file = elements.itemPhoto.files?.[0];
+      if (!file) return;
+      setInlineMessage(elements.itemFormMessage, "Compressing image…", "info");
+      try {
+        state.itemPhotoBase64 = await compressImage(file);
+        state.removeCurrentPhoto = false;
+        updatePhotoPreview();
+        setInlineMessage(elements.itemFormMessage);
+      } catch (error) {
+        elements.itemPhoto.value = "";
+        setInlineMessage(elements.itemFormMessage, firebaseErrorMessage(error), "error");
+      }
+    });
+
+    elements.removePhotoButton.addEventListener("click", () => {
+      state.itemPhotoBase64 = "";
+      state.removeCurrentPhoto = true;
+      elements.itemPhoto.value = "";
+      updatePhotoPreview();
+    });
+
+    elements.itemForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = {
+        projectName: elements.itemProject.value,
+        itemType: elements.itemType.value,
+        name: elements.itemName.value,
+        quantity: elements.itemQuantity.value,
+        comment: elements.itemComment.value,
+      };
+      if (!state.itemBeingEdited || state.itemPhotoBase64 !== (state.itemBeingEdited.photoBase64 || "") || state.removeCurrentPhoto) {
+        payload.photoBase64 = state.itemPhotoBase64;
+      }
+      elements.saveItemButton.disabled = true;
+      setInlineMessage(elements.itemFormMessage);
+      try {
+        if (state.itemBeingEdited) {
+          await updateEquipmentRecord(state.itemBeingEdited, payload, state.user);
+          toast("Item updated", `${payload.name} was saved.`);
+        } else {
+          await createEquipment(payload, state.user);
+          toast("Item created", `${payload.name} was added. Expand it to register serial numbers.`);
+        }
+        elements.itemDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.itemFormMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        elements.saveItemButton.disabled = false;
+      }
+    });
+
+    elements.singleSerialMode.addEventListener("click", () => setSerialMode("single"));
+    elements.bulkSerialMode.addEventListener("click", () => setSerialMode("bulk"));
+
+    elements.serialForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const item = state.serialContextItem;
+      const numbers = state.serialMode === "single" ? [elements.singleSerialInput.value.trim()].filter(Boolean) : parseBulkSerials(elements.bulkSerialInput.value);
+      const location = readLocation(elements.serialLocationBuilder, "serialLocation");
+      const entries = numbers.map((serialNumber) => ({ serialNumber, currentLocation: location }));
+      elements.saveSerialButton.disabled = true;
+      setInlineMessage(elements.serialFormMessage);
+      try {
+        const count = await addSerialNumbers(item, entries, new Date(elements.serialDate.value), state.user);
+        toast("Serials registered", `${count} serial number${count === 1 ? " was" : "s were"} added to ${item.name}.`);
+        elements.serialDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.serialFormMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        elements.saveSerialButton.disabled = false;
+      }
+    });
+
+    elements.renameSerialForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setInlineMessage(elements.renameSerialMessage);
+      try {
+        await renameSerialNumber(state.serialContextItem, state.serialBeingEdited, elements.renameSerialInput.value, new Date(elements.renameSerialDate.value), state.user);
+        toast("Serial updated", "The serial number and its history were updated.");
+        if (state.selectedLogFilter?.serialId === state.serialBeingEdited.id) state.selectedLogFilter.serialNumber = elements.renameSerialInput.value.trim();
+        elements.renameSerialDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.renameSerialMessage, firebaseErrorMessage(error), "error");
+      }
+    });
+
+    elements.actionForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const { action, item, serial } = state.actionContext;
+      elements.saveActionButton.disabled = true;
+      setInlineMessage(elements.actionFormMessage);
+      try {
+        const date = new Date(elements.actionDate.value);
+        if (action === "move") {
+          await moveSerialNumber(item, serial, readLocation(elements.fromLocationBuilder, "fromLocation"), readLocation(elements.toLocationBuilder, "toLocation"), date, state.user);
+          toast("Movement recorded", `${serial.serialNumber} was moved.`);
+        } else if (action === "lend") {
+          await lendSerialNumber(item, serial, elements.memberNameInput.value, date, state.user);
+          toast("Lending recorded", `${serial.serialNumber} was lent to ${elements.memberNameInput.value.trim()}.`);
+        } else {
+          await returnSerialNumber(item, serial, readLocation(elements.returnLocationBuilder, "returnLocation"), date, state.user);
+          toast("Return recorded", `${serial.serialNumber} was returned.`);
+        }
+        elements.actionDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.actionFormMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        elements.saveActionButton.disabled = false;
+      }
+    });
+
+    elements.confirmForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const action = state.confirmAction;
+      if (!action) return;
+      elements.confirmButton.disabled = true;
+      setInlineMessage(elements.confirmMessage);
+      try {
+        if (action.type === "delete-item") {
+          setLoading(true, "Deleting item and related records…");
+          await deleteEquipmentRecord(action.item.id);
+          toast("Item deleted", `${action.item.name} and its active serial records were deleted. Historical activity logs were preserved.`);
+        } else {
+          await removeSerialNumber(action.item, action.serial, new Date(elements.confirmDate.value), state.user);
+          toast("Serial removed", `${action.serial.serialNumber} was removed and logged.`);
+          if (state.selectedLogFilter?.serialId === action.serial.id) state.selectedLogFilter = null;
+        }
+        elements.confirmDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.confirmMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        setLoading(false);
+        elements.confirmButton.disabled = false;
+      }
+    });
+
+    elements.exportButton.addEventListener("click", async () => {
+      setLoading(true, "Preparing inventory export…");
+      try {
+        const rows = await getInventoryExportRows();
+        downloadCsv(rows);
+        toast("Export ready", `${rows.length} inventory row${rows.length === 1 ? " was" : "s were"} exported.`);
+      } catch (error) {
+        toast("Export failed", firebaseErrorMessage(error), "error");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    $$('[data-close-dialog]').forEach((button) => {
+      button.addEventListener("click", () => document.getElementById(button.dataset.closeDialog)?.close());
+    });
+    $$('dialog').forEach((dialog) => {
+      dialog.addEventListener("click", (event) => {
+        const rect = dialog.getBoundingClientRect();
+        const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+        if (outside) dialog.close();
+      });
+    });
+
+    if (!firebaseConfigured) {
+      elements.configWarning.classList.remove("hidden");
+      elements.loginButton.disabled = true;
+    } else {
+      observeAuthentication(async (user) => {
+        if (!user) {
+          clearDataSubscriptions();
+          state.user = null;
+          state.profile = null;
+          elements.appView.classList.add("hidden");
+          elements.loginView.classList.remove("hidden");
+          return;
+        }
+
+        setLoading(true, "Opening the lab equipment workspace…");
+        try {
+          const profile = await getAuthorizationProfile(user);
+          if (!profile) {
+            await logout();
+            setInlineMessage(elements.loginMessage, "This Firebase account could not be loaded.", "error");
+            return;
+          }
+          state.user = user;
+          state.profile = profile;
+          elements.userName.textContent = profile.name || user.displayName || "Authenticated member";
+          elements.userEmail.textContent = user.email || "";
+          elements.loginView.classList.add("hidden");
+          elements.appView.classList.remove("hidden");
+          elements.loginPassword.value = "";
+          await startDataSubscriptions();
+        } catch (error) {
+          setInlineMessage(elements.loginMessage, firebaseErrorMessage(error), "error");
+          await logout().catch(() => {});
+        } finally {
+          setLoading(false);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
