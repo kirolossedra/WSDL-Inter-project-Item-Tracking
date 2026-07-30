@@ -881,7 +881,7 @@
 
   <dialog id="pdfDialog">
     <form id="pdfForm" method="dialog">
-      <div class="dialog-header"><div><h2>Generate inventory PDF</h2><p>Creates a table report with item photos, combined or serial locations, serial details, comments, and comment photos.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="pdfDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-header"><div><h2>Generate inventory PDF</h2><p>Creates a compact portrait report optimized for phone viewing, with larger item and comment photos and minimal unused space.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="pdfDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
       <div class="dialog-body">
         <div class="pdf-scope-grid">
           <div class="field"><label for="pdfScope">Report basis</label><select id="pdfScope"><option value="selection">Selected items</option><option value="project">Project</option><option value="category">Item category</option></select></div>
@@ -2044,7 +2044,7 @@
         : scope === "project"
           ? `${items.length} item${items.length === 1 ? "" : "s"} in project ${elements.pdfProject.value}`
           : `${items.length} item${items.length === 1 ? "" : "s"} in category ${elements.pdfCategory.value}`;
-      elements.pdfSummary.textContent = `${description}. The PDF contains an overview table with item photos, tags, locations, serial-number tables, and dated item-comment tables with comment photos.`;
+      elements.pdfSummary.textContent = `${description}. The PDF uses a compact portrait layout for phone viewing, with larger item and comment photos, dense serial tables, tags, locations, and dated comments.`;
     }
 
     function pdfImageFormat(dataUrl) {
@@ -2053,12 +2053,44 @@
       return "JPEG";
     }
 
-    function addPdfImage(doc, dataUrl, x, y, width, height) {
-      if (!dataUrl) return;
+    function addPdfImage(doc, dataUrl, x, y, width, height, fit = "contain") {
+      if (!dataUrl) return false;
       try {
-        doc.addImage(dataUrl, pdfImageFormat(dataUrl), x, y, width, height, undefined, "FAST");
+        const properties = doc.getImageProperties(dataUrl);
+        const sourceWidth = Number(properties?.width || width);
+        const sourceHeight = Number(properties?.height || height);
+        const sourceRatio = sourceWidth / Math.max(sourceHeight, 1);
+        const boxRatio = width / Math.max(height, 1);
+        let drawWidth = width;
+        let drawHeight = height;
+        let drawX = x;
+        let drawY = y;
+
+        if (fit === "cover") {
+          if (sourceRatio > boxRatio) {
+            drawHeight = height;
+            drawWidth = height * sourceRatio;
+            drawX = x - (drawWidth - width) / 2;
+          } else {
+            drawWidth = width;
+            drawHeight = width / sourceRatio;
+            drawY = y - (drawHeight - height) / 2;
+          }
+        } else if (sourceRatio > boxRatio) {
+          drawHeight = width / sourceRatio;
+          drawY = y + (height - drawHeight) / 2;
+        } else {
+          drawWidth = height * sourceRatio;
+          drawX = x + (width - drawWidth) / 2;
+        }
+
+        doc.setFillColor(245, 249, 250);
+        doc.rect(x, y, width, height, "F");
+        doc.addImage(dataUrl, pdfImageFormat(dataUrl), drawX, drawY, drawWidth, drawHeight, undefined, "FAST");
+        return true;
       } catch (error) {
         console.warn("Could not add an image to the PDF:", error);
+        return false;
       }
     }
 
@@ -2069,160 +2101,249 @@
     function generateInventoryPdf(items, scopeLabel) {
       const JsPdf = window.jspdf?.jsPDF;
       if (!JsPdf) throw new Error("The PDF library did not load. Refresh the page and try again.");
-      const doc = new JsPdf({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+      const doc = new JsPdf({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
       if (typeof doc.autoTable !== "function") throw new Error("The PDF table library did not load. Refresh the page and try again.");
 
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 12;
+      const margin = 6;
+      const contentWidth = pageWidth - margin * 2;
+      const footerY = pageHeight - 5;
+      const bottomLimit = pageHeight - 10;
+      let y = 8;
+
+      const addPage = () => {
+        doc.addPage();
+        y = 8;
+      };
+
+      const ensureSpace = (requiredHeight) => {
+        if (y + requiredHeight > bottomLimit) addPage();
+      };
+
+      const drawSectionLabel = (label) => {
+        ensureSpace(7);
+        doc.setFillColor(223, 246, 244);
+        doc.roundedRect(margin, y, contentWidth, 6, 1.3, 1.3, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(0, 111, 115);
+        doc.text(label, margin + 2, y + 4.1);
+        y += 7.2;
+      };
+
       doc.setTextColor(8, 24, 32);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text("Lab Equipment Inventory Report", margin, 15);
+      doc.setFontSize(13.5);
+      doc.text("Lab Equipment Inventory", margin, y + 3.2);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
+      doc.setFontSize(7.4);
       doc.setTextColor(66, 108, 119);
-      doc.text(`Scope: ${scopeLabel}`, margin, 22);
-      doc.text(`Generated: ${formatDateTime(Date.now())}`, margin, 27);
+      doc.text(`Scope: ${scopeLabel}`, margin, y + 8);
+      doc.text(`Generated: ${formatDateTime(Date.now())}`, pageWidth - margin, y + 8, { align: "right" });
+      y += 11;
 
       const overviewRows = items.map((item) => ({
         photo: "",
-        project: item.projectName || "",
-        category: item.itemType || "",
-        item: item.name || "",
-        tags: normalizeTags(item.tags).join(", "),
-        quantity: String(item.quantity || 0),
-        serials: String(item.serials?.length || 0),
-        comments: String(item.notes?.length || 0),
+        item: `${item.name || "Unnamed item"}\nTags: ${normalizeTags(item.tags).join(", ") || "None"}`,
+        projectType: `${item.projectName || ""}\n${item.itemType || ""}`,
+        counts: `Qty ${item.quantity || 0}\nSN ${item.serials?.length || 0}\nNotes ${item.notes?.length || 0}`,
         location: itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per serial number",
-        comment: item.comment || "",
         itemPhoto: item.photoBase64 || "",
       }));
 
       doc.autoTable({
-        startY: 32,
+        startY: y,
         columns: [
           { header: "Photo", dataKey: "photo" },
-          { header: "Project", dataKey: "project" },
-          { header: "Category", dataKey: "category" },
-          { header: "Item", dataKey: "item" },
-          { header: "Tags", dataKey: "tags" },
-          { header: "Qty", dataKey: "quantity" },
+          { header: "Item and tags", dataKey: "item" },
+          { header: "Project / type", dataKey: "projectType" },
+          { header: "Counts", dataKey: "counts" },
           { header: "Location", dataKey: "location" },
-          { header: "Serials", dataKey: "serials" },
-          { header: "Comments", dataKey: "comments" },
-          { header: "Main comment", dataKey: "comment" },
         ],
         body: overviewRows,
         theme: "grid",
-        margin: { left: margin, right: margin },
-        styles: { fontSize: 7.5, cellPadding: 2, valign: "middle", overflow: "linebreak" },
-        headStyles: { fillColor: [0, 111, 115], textColor: 255, fontStyle: "bold" },
-        columnStyles: {
-          photo: { cellWidth: 23, minCellHeight: 20 },
-          project: { cellWidth: 20 },
-          category: { cellWidth: 21 },
-          item: { cellWidth: 34 },
-          tags: { cellWidth: 35 },
-          quantity: { cellWidth: 12, halign: "center" },
-          location: { cellWidth: 42 },
-          serials: { cellWidth: 14, halign: "center" },
-          comments: { cellWidth: 15, halign: "center" },
-          comment: { cellWidth: "auto" },
+        margin: { left: margin, right: margin, top: 8, bottom: 10 },
+        styles: {
+          fontSize: 7.6,
+          cellPadding: 1.15,
+          valign: "middle",
+          overflow: "linebreak",
+          lineColor: [213, 225, 227],
+          lineWidth: 0.15,
         },
+        headStyles: { fillColor: [0, 111, 115], textColor: 255, fontStyle: "bold", minCellHeight: 6.5 },
+        columnStyles: {
+          photo: { cellWidth: 34 },
+          item: { cellWidth: 58 },
+          projectType: { cellWidth: 27 },
+          counts: { cellWidth: 20, halign: "center" },
+          location: { cellWidth: "auto" },
+        },
+        rowPageBreak: "avoid",
         didParseCell(data) {
-          if (data.section === "body" && data.column.dataKey === "photo") data.cell.styles.minCellHeight = 20;
+          if (data.section === "body" && data.column.dataKey === "photo") {
+            data.cell.styles.minCellHeight = data.row.raw.itemPhoto ? 27 : 9;
+          }
         },
         didDrawCell(data) {
           if (data.section === "body" && data.column.dataKey === "photo") {
             const image = data.row.raw.itemPhoto;
-            if (image) addPdfImage(doc, image, data.cell.x + 1.5, data.cell.y + 1.5, data.cell.width - 3, data.cell.height - 3);
+            if (image) addPdfImage(doc, image, data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2);
+            else {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(6.7);
+              doc.setTextColor(100, 120, 126);
+              doc.text("No photo", data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 1, { align: "center" });
+            }
           }
         },
       });
 
+      y = doc.lastAutoTable.finalY + 4;
+
       items.forEach((item, itemIndex) => {
-        doc.addPage();
-        let y = 15;
+        const photoWidth = 52;
+        const photoHeight = 39;
+        const textX = margin + photoWidth + 3;
+        const textWidth = contentWidth - photoWidth - 5;
+        const nameLines = doc.splitTextToSize(`${itemIndex + 1}. ${item.name || "Unnamed item"}`, textWidth);
+        const tagLines = doc.splitTextToSize(`Tags: ${normalizeTags(item.tags).join(", ") || "None"}`, textWidth);
+        const commentLines = doc.splitTextToSize(item.comment || "No main item comment.", textWidth);
+        const metadataLines = doc.splitTextToSize(
+          `${item.projectName || ""} · ${item.itemType || ""} · Quantity ${item.quantity || 0} · ${itemUsesCombinedLocation(item) ? formatLocation(item.combinedLocation) : "Per-serial locations"}`,
+          textWidth,
+        );
+        const textHeight = 4 + nameLines.length * 4.4 + metadataLines.length * 3.5 + tagLines.length * 3.4 + commentLines.length * 3.5;
+        const cardHeight = Math.max(photoHeight + 4, textHeight + 3);
+
+        ensureSpace(cardHeight + 7);
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(213, 225, 227);
+        doc.roundedRect(margin, y, contentWidth, cardHeight, 1.8, 1.8, "FD");
+
+        if (item.photoBase64) {
+          addPdfImage(doc, item.photoBase64, margin + 2, y + 2, photoWidth - 4, Math.min(photoHeight, cardHeight - 4));
+        } else {
+          doc.setFillColor(245, 249, 250);
+          doc.rect(margin + 2, y + 2, photoWidth - 4, Math.min(photoHeight, cardHeight - 4), "F");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(100, 120, 126);
+          doc.text("No item photo", margin + photoWidth / 2, y + Math.min(photoHeight, cardHeight - 4) / 2 + 2, { align: "center" });
+        }
+
+        let textY = y + 5;
         doc.setTextColor(8, 24, 32);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(15);
-        doc.text(`${itemIndex + 1}. ${item.name}`, margin, y);
+        doc.setFontSize(11.5);
+        doc.text(nameLines, textX, textY);
+        textY += nameLines.length * 4.4 + 0.6;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
+        doc.setFontSize(7.7);
         doc.setTextColor(66, 108, 119);
-        const itemLocationText = itemUsesCombinedLocation(item) ? `Combined location: ${formatLocation(item.combinedLocation)}` : "Location tracking: per serial number";
-        doc.text(`${item.projectName} · ${item.itemType} · Quantity ${item.quantity || 0} · ${itemLocationText}`, margin, y + 6);
-        const tagLines = doc.splitTextToSize(`Tags: ${normalizeTags(item.tags).join(", ") || "None"}`, pageWidth - margin * 2 - 48);
-        doc.text(tagLines, margin, y + 11);
-        const commentStartY = y + 16 + Math.max(0, tagLines.length - 1) * 4;
-        const commentLines = doc.splitTextToSize(item.comment || "No main item comment.", pageWidth - margin * 2 - 48);
+        doc.text(metadataLines, textX, textY);
+        textY += metadataLines.length * 3.5 + 0.8;
+        doc.setTextColor(0, 111, 115);
+        doc.text(tagLines, textX, textY);
+        textY += tagLines.length * 3.4 + 1;
         doc.setTextColor(40, 82, 96);
-        doc.text(commentLines, margin, commentStartY);
-        if (item.photoBase64) addPdfImage(doc, item.photoBase64, pageWidth - margin - 42, y - 2, 42, 30);
-        y = Math.max(commentStartY + 5 + commentLines.length * 4, 52);
+        doc.text(commentLines, textX, textY);
+        y += cardHeight + 2.5;
 
         const serialRows = (item.serials || []).map((serial) => ({
           serial: serial.serialNumber || "",
           location: formatLocation(itemUsesCombinedLocation(item) ? item.combinedLocation : serial.currentLocation),
-          status: serial.loan?.isLoaned ? "Lent" : "Available",
-          member: serial.loan?.memberName || "",
+          status: serial.loan?.isLoaned ? `Lent${serial.loan?.memberName ? ` · ${serial.loan.memberName}` : ""}` : "Available",
         }));
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.setTextColor(8, 24, 32);
-        doc.text("Serial numbers", margin, y);
+
+        drawSectionLabel(`Serial numbers · ${serialRows.length}`);
         doc.autoTable({
-          startY: y + 3,
+          startY: y,
           columns: [
             { header: "Serial number", dataKey: "serial" },
             { header: "Current location", dataKey: "location" },
-            { header: "Status", dataKey: "status" },
-            { header: "Member", dataKey: "member" },
+            { header: "Status / member", dataKey: "status" },
           ],
-          body: serialRows.length ? serialRows : [{ serial: "No serials registered", location: "", status: "", member: "" }],
+          body: serialRows.length ? serialRows : [{ serial: "No serials registered", location: "", status: "" }],
           theme: "grid",
-          margin: { left: margin, right: margin },
-          styles: { fontSize: 7.5, cellPadding: 2, overflow: "linebreak" },
-          headStyles: { fillColor: [23, 57, 70], textColor: 255 },
-          columnStyles: { serial: { cellWidth: 45 }, location: { cellWidth: 120 }, status: { cellWidth: 28 }, member: { cellWidth: "auto" } },
+          margin: { left: margin, right: margin, top: 8, bottom: 10 },
+          styles: {
+            fontSize: 7.7,
+            cellPadding: 1.15,
+            overflow: "linebreak",
+            lineColor: [222, 232, 234],
+            lineWidth: 0.12,
+          },
+          headStyles: { fillColor: [23, 57, 70], textColor: 255, minCellHeight: 6.2 },
+          columnStyles: { serial: { cellWidth: 47 }, location: { cellWidth: 93 }, status: { cellWidth: "auto" } },
+          rowPageBreak: "avoid",
         });
-        y = doc.lastAutoTable.finalY + 9;
-        if (y > pageHeight - 45) { doc.addPage(); y = 15; }
+        y = doc.lastAutoTable.finalY + 2.5;
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.setTextColor(8, 24, 32);
-        doc.text("Item comments", margin, y);
         const noteRows = (item.notes || []).map((note) => ({
           photo: "",
           date: formatDateTime(note.noteDate || note.createdAt),
           comment: note.text || "Photo-only comment",
           notePhoto: note.photoBase64 || "",
         }));
-        doc.autoTable({
-          startY: y + 3,
-          columns: [
-            { header: "Photo", dataKey: "photo" },
-            { header: "Date", dataKey: "date" },
-            { header: "Comment", dataKey: "comment" },
-          ],
-          body: noteRows.length ? noteRows : [{ photo: "", date: "", comment: "No item comments", notePhoto: "" }],
-          theme: "grid",
-          margin: { left: margin, right: margin },
-          styles: { fontSize: 7.5, cellPadding: 2, valign: "middle", overflow: "linebreak" },
-          headStyles: { fillColor: [0, 139, 139], textColor: 255 },
-          columnStyles: { photo: { cellWidth: 30, minCellHeight: 25 }, date: { cellWidth: 42 }, comment: { cellWidth: "auto" } },
-          didParseCell(data) {
-            if (data.section === "body" && data.column.dataKey === "photo" && data.row.raw.notePhoto) data.cell.styles.minCellHeight = 25;
-          },
-          didDrawCell(data) {
-            if (data.section === "body" && data.column.dataKey === "photo") {
-              const image = data.row.raw.notePhoto;
-              if (image) addPdfImage(doc, image, data.cell.x + 1.5, data.cell.y + 1.5, data.cell.width - 3, data.cell.height - 3);
-            }
-          },
-        });
+
+        drawSectionLabel(`Item comments · ${noteRows.length}`);
+        if (noteRows.length) {
+          doc.autoTable({
+            startY: y,
+            columns: [
+              { header: "Photo", dataKey: "photo" },
+              { header: "Date", dataKey: "date" },
+              { header: "Comment", dataKey: "comment" },
+            ],
+            body: noteRows,
+            theme: "grid",
+            margin: { left: margin, right: margin, top: 8, bottom: 10 },
+            styles: {
+              fontSize: 7.8,
+              cellPadding: 1.15,
+              valign: "middle",
+              overflow: "linebreak",
+              lineColor: [222, 232, 234],
+              lineWidth: 0.12,
+            },
+            headStyles: { fillColor: [0, 139, 139], textColor: 255, minCellHeight: 6.2 },
+            columnStyles: { photo: { cellWidth: 45 }, date: { cellWidth: 31 }, comment: { cellWidth: "auto" } },
+            rowPageBreak: "avoid",
+            didParseCell(data) {
+              if (data.section === "body" && data.column.dataKey === "photo") {
+                data.cell.styles.minCellHeight = data.row.raw.notePhoto ? 34 : 9;
+              }
+            },
+            didDrawCell(data) {
+              if (data.section === "body" && data.column.dataKey === "photo") {
+                const image = data.row.raw.notePhoto;
+                if (image) addPdfImage(doc, image, data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2);
+                else {
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(6.7);
+                  doc.setTextColor(100, 120, 126);
+                  doc.text("No photo", data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 1, { align: "center" });
+                }
+              }
+            },
+          });
+          y = doc.lastAutoTable.finalY + 3.5;
+        } else {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 120, 126);
+          doc.text("No item comments.", margin + 1, y + 2.5);
+          y += 6;
+        }
+
+        if (itemIndex < items.length - 1) {
+          ensureSpace(4);
+          doc.setDrawColor(213, 225, 227);
+          doc.line(margin, y, pageWidth - margin, y);
+          y += 3.5;
+        }
       });
 
       const totalPages = doc.internal.getNumberOfPages();
@@ -2231,7 +2352,7 @@
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7);
         doc.setTextColor(100, 120, 126);
-        doc.text(`Page ${page} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: "right" });
+        doc.text(`Page ${page} of ${totalPages}`, pageWidth - margin, footerY, { align: "right" });
       }
       doc.save(`lab-equipment-${safePdfFilePart(scopeLabel)}-${new Date().toISOString().slice(0, 10)}.pdf`);
     }
