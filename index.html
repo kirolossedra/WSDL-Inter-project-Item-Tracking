@@ -450,6 +450,28 @@
     .location-sub { display: block; color: var(--ink-500); margin-top: .16rem; font-size: .7rem; }
     .serial-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; }
 
+    .selection-cell { width: 42px; text-align: center; }
+    .selection-checkbox { width: 18px; height: 18px; min-height: 0; accent-color: var(--lab-700); cursor: pointer; }
+    .inventory-row.selected { background: #eaf8f6; }
+    .selection-summary { display: inline-flex; align-items: center; gap: .4rem; padding: .38rem .62rem; border-radius: 999px; color: var(--lab-700); background: var(--lab-100); font-size: .75rem; font-weight: 850; }
+
+    .notes-section { margin-top: 1rem; border: 1px solid var(--border); border-radius: 15px; background: #fff; overflow: hidden; }
+    .notes-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem .85rem; border-bottom: 1px solid var(--border); }
+    .notes-heading h3 { margin: 0; font-size: .92rem; }
+    .notes-heading span { color: var(--ink-500); font-size: .75rem; }
+    .notes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: .8rem; }
+    .note-card { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: .75rem; padding: .75rem; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-soft); }
+    .note-card.no-photo { grid-template-columns: 1fr; }
+    .note-photo { width: 105px; height: 88px; object-fit: cover; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+    .note-body { min-width: 0; }
+    .note-date { color: var(--ink-500); font-size: .68rem; font-weight: 750; }
+    .note-text { margin: .35rem 0 0; color: var(--ink-700); font-size: .77rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .note-actions { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .6rem; }
+
+    .pdf-scope-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+    .pdf-scope-grid .field + .field { margin-top: 0; }
+    .pdf-summary { margin-top: 1rem; padding: .85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); color: var(--ink-700); font-size: .82rem; line-height: 1.55; }
+
     .empty-state { padding: 3rem 1.2rem; text-align: center; color: var(--ink-500); }
     .empty-state svg { width: 42px; height: 42px; color: #9db5ba; }
     .empty-state h3 { margin: .75rem 0 .35rem; color: var(--ink-800); font-size: 1rem; }
@@ -489,6 +511,7 @@
     .activity-ticket[data-action="Lent"]::before { background: #d59600; }
     .activity-ticket[data-action="Returned"]::before { background: #2d9a62; }
     .activity-ticket[data-action="Removed"]::before { background: #d44f4f; }
+    .activity-ticket[data-action="Serial modified"]::before { background: #2359a6; }
     .ticket-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
     .ticket-action { font-weight: 900; font-size: .82rem; }
     .ticket-date { color: var(--ink-500); font-size: .68rem; white-space: nowrap; }
@@ -537,7 +560,8 @@
     .segmented button.active { color: var(--lab-700); background: #fff; box-shadow: 0 2px 8px rgba(8,24,32,.08); }
     .location-builder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: .8rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
     .location-builder .field + .field { margin-top: 0; }
-    .location-builder .owner-field { grid-column: span 2; }
+    .location-builder .owner-field,
+    .location-builder .exact-field { grid-column: span 2; }
     .confirm-text { line-height: 1.65; color: var(--ink-700); }
 
     .toast-region { position: fixed; right: 1rem; bottom: 1rem; z-index: 100; display: grid; gap: .6rem; width: min(92vw, 360px); }
@@ -596,8 +620,13 @@
       .photo-input-wrap { grid-template-columns: 1fr; }
       .photo-preview { width: 100%; height: 150px; }
       .location-builder { grid-template-columns: 1fr; }
-      .location-builder .owner-field { grid-column: auto; }
+      .location-builder .owner-field,
+      .location-builder .exact-field { grid-column: auto; }
       .hero-features { grid-template-columns: 1fr; }
+      .notes-grid { grid-template-columns: 1fr; }
+      .note-card { grid-template-columns: 86px minmax(0, 1fr); }
+      .note-photo { width: 86px; height: 76px; }
+      .pdf-scope-grid { grid-template-columns: 1fr; }
       .login-hero { padding: 1.5rem; min-height: auto; }
       .hero-copy { padding: 4rem 0; }
       .login-panel { padding: 2rem 1.25rem; min-height: auto; }
@@ -685,6 +714,8 @@
       <div class="page-heading">
         <div><h1>Equipment inventory</h1><p>Item-level inventory with independent serial locations and dated activity logs.</p></div>
         <div class="heading-actions">
+          <span id="selectionCount" class="selection-summary hidden">0 selected</span>
+          <button id="pdfButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Generate PDF</button>
           <button id="exportButton" class="button button-secondary" type="button"><svg class="icon"><use href="#icon-download"></use></svg> Export CSV</button>
           <button id="addItemButton" class="button button-primary" type="button"><svg class="icon"><use href="#icon-plus"></use></svg> Add item</button>
         </div>
@@ -698,7 +729,7 @@
 
       <section class="workspace">
         <div class="panel inventory-panel">
-          <div class="panel-header"><div><h2>Equipment table</h2><p>Expand a row to manage its serial numbers.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
+          <div class="panel-header"><div><h2>Equipment table</h2><p>Select items for reports, or expand a row to manage serials and photo notes.</p></div><span id="resultCount" class="badge badge-project">0 results</span></div>
           <div class="toolbar">
             <div class="search-wrap"><svg class="icon"><use href="#icon-search"></use></svg><input id="searchInput" type="search" placeholder="Search item name or comment" /></div>
             <select id="projectFilter" aria-label="Filter by project"><option value="">All projects</option><option>Apple</option><option>AQS</option><option>Rogers</option></select>
@@ -708,7 +739,7 @@
         </div>
 
         <aside class="panel activity-panel" aria-label="Activity logs">
-          <div class="panel-header"><div><h2>Activity log</h2><p>Serial-number-based change tickets.</p></div></div>
+          <div class="panel-header"><div><h2>Activity log</h2><p>Serial changes and item-note activity tickets.</p></div></div>
           <div class="activity-context"><strong id="activityContext">All recent activity</strong><button id="clearLogFilter" class="button button-ghost button-small hidden" type="button">Show all</button></div>
           <div id="activityList" class="activity-list"></div>
         </aside>
@@ -751,13 +782,16 @@
 
   <dialog id="renameSerialDialog">
     <form id="renameSerialForm" method="dialog">
-      <div class="dialog-header"><div><h2>Edit serial number</h2><p>Location changes are recorded through the Move action.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="renameSerialDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-header"><div><h2>Edit serial record</h2><p>Modify the serial number, exact location, sub-location, and lending status.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="renameSerialDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
       <div class="dialog-body">
         <div class="field"><label for="renameSerialInput">Serial number</label><input id="renameSerialInput" maxlength="160" required /></div>
-        <div class="field"><label for="renameSerialDate">Change date</label><input id="renameSerialDate" type="datetime-local" required /></div>
+        <div class="field"><label>Current location</label><div id="renameSerialLocationBuilder" class="location-builder"></div></div>
+        <div class="field"><label for="renameSerialStatus">Current status</label><select id="renameSerialStatus"><option value="available">Available</option><option value="loaned">Lent to a member</option></select></div>
+        <div id="renameSerialMemberField" class="field hidden"><label for="renameSerialMemberName">Member name</label><input id="renameSerialMemberName" maxlength="160" placeholder="Name of member holding this serial" /></div>
+        <div class="field"><label for="renameSerialDate">Effective date</label><input id="renameSerialDate" type="datetime-local" required /></div>
         <div id="renameSerialMessage" class="inline-message" role="status"></div>
       </div>
-      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="renameSerialDialog">Cancel</button><button class="button button-primary" type="submit">Save serial</button></div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="renameSerialDialog">Cancel</button><button class="button button-primary" type="submit">Save serial record</button></div>
     </form>
   </dialog>
 
@@ -778,6 +812,35 @@
     </form>
   </dialog>
 
+  <dialog id="noteDialog">
+    <form id="noteForm" method="dialog">
+      <div class="dialog-header"><div><h2 id="noteDialogTitle">Add item note</h2><p id="noteDialogSubtitle">Notes may contain text, a photo, or both.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="noteDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div class="field"><label for="noteText">Note text <span style="font-weight:500;color:var(--ink-500)">(optional when a photo is included)</span></label><textarea id="noteText" maxlength="5000" placeholder="Inspection result, configuration detail, damage, accessory information, or any other item note"></textarea></div>
+        <div class="field"><label>Note photo <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><div class="photo-input-wrap"><div id="notePhotoPreview" class="photo-preview"><span>No note photo selected</span></div><div><input id="notePhoto" type="file" accept="image/*" /><small>Stored as compressed Base64 in the item note record.</small><button id="removeNotePhotoButton" class="button button-ghost button-small hidden" type="button">Remove note photo</button></div></div></div>
+        <div class="field"><label for="noteDate">Note date</label><input id="noteDate" type="datetime-local" required /></div>
+        <div id="noteFormMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="noteDialog">Cancel</button><button id="saveNoteButton" class="button button-primary" type="submit">Save note</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="pdfDialog">
+    <form id="pdfForm" method="dialog">
+      <div class="dialog-header"><div><h2>Generate inventory PDF</h2><p>Creates a table report with item photos, serial details, notes, and note photos.</p></div><button class="button button-ghost button-icon" type="button" data-close-dialog="pdfDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
+      <div class="dialog-body">
+        <div class="pdf-scope-grid">
+          <div class="field"><label for="pdfScope">Report basis</label><select id="pdfScope"><option value="selection">Selected items</option><option value="project">Project</option><option value="category">Item category</option></select></div>
+          <div id="pdfProjectField" class="field hidden"><label for="pdfProject">Project</label><select id="pdfProject"><option>Apple</option><option>AQS</option><option>Rogers</option></select></div>
+          <div id="pdfCategoryField" class="field hidden"><label for="pdfCategory">Item category</label><select id="pdfCategory"><option>Device</option><option>Component</option></select></div>
+        </div>
+        <div id="pdfSummary" class="pdf-summary"></div>
+        <div id="pdfFormMessage" class="inline-message" role="status"></div>
+      </div>
+      <div class="dialog-footer"><button class="button button-secondary" type="button" data-close-dialog="pdfDialog">Cancel</button><button id="generatePdfButton" class="button button-primary" type="submit">Generate PDF</button></div>
+    </form>
+  </dialog>
+
   <dialog id="confirmDialog">
     <form id="confirmForm" method="dialog">
       <div class="dialog-header"><div><h2 id="confirmTitle">Confirm action</h2></div><button class="button button-ghost button-icon" type="button" data-close-dialog="confirmDialog" aria-label="Close"><svg class="icon"><use href="#icon-close"></use></svg></button></div>
@@ -789,28 +852,35 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-card"><span class="spinner" aria-hidden="true"></span><span id="loadingText">Working…</span></div></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
   <script type="module">
     import {
       SITES,
       addSerialNumbers,
       createEquipment,
+      createItemNote,
       deleteEquipmentRecord,
+      deleteItemNote,
       firebaseConfigured,
       getInventoryExportRows,
+      getInventoryReportData,
       lendSerialNumber,
       loginWithEmail,
       logout,
       moveSerialNumber,
       observeAuthentication,
       removeSerialNumber,
-      renameSerialNumber,
+      updateSerialRecord,
       returnSerialNumber,
       sendResetEmail,
       subscribeActivityLogs,
       subscribeEquipment,
+      subscribeItemNotes,
       subscribeSerials,
       updateEquipmentRecord,
-    } from "./firebase-config.js?v=20260730-no-extra-authorization";
+      updateItemNote,
+    } from "./firebase-config.js?v=20260730-note-photos-pdf-reports";
 
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -821,7 +891,10 @@
       logs: [],
       serialsByItem: new Map(),
       serialSubscriptions: new Map(),
+      notesByItem: new Map(),
+      noteSubscriptions: new Map(),
       expandedItems: new Set(),
+      selectedItems: new Set(),
       selectedLogFilter: null,
       itemBeingEdited: null,
       serialContextItem: null,
@@ -830,6 +903,10 @@
       confirmAction: null,
       itemPhotoBase64: "",
       removeCurrentPhoto: false,
+      noteContextItem: null,
+      noteBeingEdited: null,
+      notePhotoBase64: "",
+      removeCurrentNotePhoto: false,
       serialMode: "single",
       equipmentUnsubscribe: null,
       logsUnsubscribe: null,
@@ -849,7 +926,9 @@
       userName: $("#userName"),
       userEmail: $("#userEmail"),
       addItemButton: $("#addItemButton"),
+      pdfButton: $("#pdfButton"),
       exportButton: $("#exportButton"),
+      selectionCount: $("#selectionCount"),
       searchInput: $("#searchInput"),
       projectFilter: $("#projectFilter"),
       typeFilter: $("#typeFilter"),
@@ -890,6 +969,10 @@
       renameSerialDialog: $("#renameSerialDialog"),
       renameSerialForm: $("#renameSerialForm"),
       renameSerialInput: $("#renameSerialInput"),
+      renameSerialLocationBuilder: $("#renameSerialLocationBuilder"),
+      renameSerialStatus: $("#renameSerialStatus"),
+      renameSerialMemberField: $("#renameSerialMemberField"),
+      renameSerialMemberName: $("#renameSerialMemberName"),
       renameSerialDate: $("#renameSerialDate"),
       renameSerialMessage: $("#renameSerialMessage"),
       actionDialog: $("#actionDialog"),
@@ -906,6 +989,27 @@
       actionDate: $("#actionDate"),
       actionFormMessage: $("#actionFormMessage"),
       saveActionButton: $("#saveActionButton"),
+      noteDialog: $("#noteDialog"),
+      noteForm: $("#noteForm"),
+      noteDialogTitle: $("#noteDialogTitle"),
+      noteDialogSubtitle: $("#noteDialogSubtitle"),
+      noteText: $("#noteText"),
+      notePhoto: $("#notePhoto"),
+      notePhotoPreview: $("#notePhotoPreview"),
+      removeNotePhotoButton: $("#removeNotePhotoButton"),
+      noteDate: $("#noteDate"),
+      noteFormMessage: $("#noteFormMessage"),
+      saveNoteButton: $("#saveNoteButton"),
+      pdfDialog: $("#pdfDialog"),
+      pdfForm: $("#pdfForm"),
+      pdfScope: $("#pdfScope"),
+      pdfProjectField: $("#pdfProjectField"),
+      pdfProject: $("#pdfProject"),
+      pdfCategoryField: $("#pdfCategoryField"),
+      pdfCategory: $("#pdfCategory"),
+      pdfSummary: $("#pdfSummary"),
+      pdfFormMessage: $("#pdfFormMessage"),
+      generatePdfButton: $("#generatePdfButton"),
       confirmDialog: $("#confirmDialog"),
       confirmForm: $("#confirmForm"),
       confirmTitle: $("#confirmTitle"),
@@ -975,6 +1079,12 @@
       return date.toISOString().slice(0, 16);
     }
 
+    function toLocalInputValue(value) {
+      const date = firebaseDate(value) || new Date();
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
+    }
+
     function firebaseDate(value) {
       if (!value) return null;
       if (typeof value.toDate === "function") return value.toDate();
@@ -997,14 +1107,14 @@
 
     function formatLocation(location) {
       if (!location?.site) return "Location not assigned";
-      const parts = [location.site, location.subLocation];
-      if (location.officeOwner) parts.push(location.officeOwner);
-      return parts.filter(Boolean).join(" — ");
+      return [location.site, location.subLocation, location.officeOwner, location.exactLocation]
+        .filter(Boolean)
+        .join(" — ");
     }
 
     function locationSummaryHtml(location) {
       if (!location?.site) return `<span class="location-main">Not assigned</span>`;
-      const detail = [location.subLocation, location.officeOwner].filter(Boolean).join(" · ");
+      const detail = [location.subLocation, location.officeOwner, location.exactLocation].filter(Boolean).join(" · ");
       return `<span class="location-main">${escapeHtml(location.site)}</span><span class="location-sub">${escapeHtml(detail)}</span>`;
     }
 
@@ -1012,12 +1122,14 @@
       container.innerHTML = `
         <div class="field"><label for="${prefix}Site">Site</label><select id="${prefix}Site" ${disabled ? "disabled" : ""}><option value="">Select site</option><option value="EC5">EC5</option><option value="E5">E5</option></select></div>
         <div class="field"><label for="${prefix}SubLocation">Sub-location</label><select id="${prefix}SubLocation" ${disabled ? "disabled" : ""}><option value="">Select sub-location</option></select></div>
-        <div id="${prefix}OwnerField" class="field owner-field hidden"><label for="${prefix}Owner">Office owner's name</label><input id="${prefix}Owner" maxlength="120" ${disabled ? "disabled" : ""} placeholder="Enter person's name" /></div>`;
+        <div id="${prefix}OwnerField" class="field owner-field hidden"><label for="${prefix}Owner">Office owner's name</label><input id="${prefix}Owner" maxlength="120" ${disabled ? "disabled" : ""} placeholder="Enter person's name" /></div>
+        <div class="field exact-field"><label for="${prefix}ExactLocation">Exact place within the sub-location <span style="font-weight:500;color:var(--ink-500)">(optional)</span></label><input id="${prefix}ExactLocation" maxlength="240" ${disabled ? "disabled" : ""} placeholder="Example: Shelf B, cabinet 3, top drawer" /></div>`;
 
       const siteSelect = $(`#${prefix}Site`, container);
       const subSelect = $(`#${prefix}SubLocation`, container);
       const ownerField = $(`#${prefix}OwnerField`, container);
       const ownerInput = $(`#${prefix}Owner`, container);
+      const exactLocationInput = $(`#${prefix}ExactLocation`, container);
 
       const refreshSubLocations = (selected = "") => {
         const options = SITES[siteSelect.value] || [];
@@ -1037,6 +1149,7 @@
       siteSelect.value = initial.site || "";
       refreshSubLocations(initial.subLocation || "");
       ownerInput.value = initial.officeOwner || "";
+      exactLocationInput.value = initial.exactLocation || "";
       refreshOwner();
     }
 
@@ -1045,6 +1158,7 @@
         site: $(`#${prefix}Site`, container)?.value || "",
         subLocation: $(`#${prefix}SubLocation`, container)?.value || "",
         officeOwner: $(`#${prefix}Owner`, container)?.value.trim() || "",
+        exactLocation: $(`#${prefix}ExactLocation`, container)?.value.trim() || "",
       };
     }
 
@@ -1075,15 +1189,23 @@
 
       if (items.length === 0) {
         elements.inventoryContent.innerHTML = emptyInventoryHtml(Boolean(state.equipment.length));
+        updateSelectionSummary();
         return;
       }
 
       elements.inventoryContent.innerHTML = `
         <table class="inventory-table">
-          <thead><tr><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
+          <thead><tr><th class="selection-cell"><input id="selectVisibleItems" class="selection-checkbox" type="checkbox" aria-label="Select all visible items" /></th><th>Photo</th><th>Item</th><th>Project</th><th>Type</th><th>Quantity</th><th>Serials</th><th></th></tr></thead>
           <tbody>${items.map(renderItemRows).join("")}</tbody>
         </table>`;
 
+      const selectVisible = $("#selectVisibleItems", elements.inventoryContent);
+      const selectedVisibleCount = items.filter((item) => state.selectedItems.has(item.id)).length;
+      if (selectVisible) {
+        selectVisible.checked = items.length > 0 && selectedVisibleCount === items.length;
+        selectVisible.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < items.length;
+      }
+      updateSelectionSummary();
       bindInventoryActions();
     }
 
@@ -1093,8 +1215,10 @@
         ? `<img class="item-photo" src="${escapeHtml(item.photoBase64)}" alt="${escapeHtml(item.name)}" />`
         : `<div class="photo-placeholder">${icon("image")}</div>`;
       const commentSummary = item.comment ? escapeHtml(item.comment.replace(/\s+/g, " ")) : "No item comment";
+      const selected = state.selectedItems.has(item.id);
       return `
-        <tr class="inventory-row ${expanded ? "expanded" : ""}" data-item-id="${item.id}">
+        <tr class="inventory-row ${expanded ? "expanded" : ""} ${selected ? "selected" : ""}" data-item-id="${item.id}">
+          <td class="selection-cell"><input class="selection-checkbox select-item" type="checkbox" data-item-id="${item.id}" aria-label="Select ${escapeHtml(item.name)} for PDF" ${selected ? "checked" : ""} /></td>
           <td class="photo-cell">${photo}</td>
           <td><div class="item-name">${escapeHtml(item.name)}</div><div class="item-subtext">${commentSummary}</div></td>
           <td><span class="badge badge-project">${escapeHtml(item.projectName)}</span></td>
@@ -1103,11 +1227,12 @@
           <td><span class="quantity-value">${Number(item.serialCount || 0).toLocaleString()}</span><span class="quantity-sub">registered</span></td>
           <td class="actions-cell"><div class="row-actions"><button class="button button-ghost button-icon expand-item" type="button" data-item-id="${item.id}" aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(item.name)}">${icon("chevron", "icon chevron")}</button></div></td>
         </tr>
-        ${expanded ? `<tr class="detail-row"><td colspan="7">${renderItemDetail(item)}</td></tr>` : ""}`;
+        ${expanded ? `<tr class="detail-row"><td colspan="8">${renderItemDetail(item)}</td></tr>` : ""}`;
     }
 
     function renderItemDetail(item) {
       const serials = state.serialsByItem.get(item.id);
+      const notes = state.notesByItem.get(item.id);
       const photo = item.photoBase64 ? `<img class="detail-photo" src="${escapeHtml(item.photoBase64)}" alt="${escapeHtml(item.name)}" />` : `<div class="detail-card empty-state" style="padding:2rem">${icon("image")}<h3>No item photo</h3></div>`;
       return `<div class="item-detail">
         <div class="detail-top">
@@ -1131,12 +1256,35 @@
           <div class="serial-heading"><div><h3>Serial numbers</h3><span>Each serial has its own location and history.</span></div><button class="button button-primary button-small add-serial" type="button" data-item-id="${item.id}" ${Number(item.serialCount || 0) >= Number(item.quantity || 0) ? "disabled title=\"Quantity limit reached\"" : ""}>${icon("plus")} Add serials</button></div>
           ${renderSerialTable(item, serials)}
         </section>
+        <section class="notes-section">
+          <div class="notes-heading"><div><h3>Item notes</h3><span>Text and photo notes are stored separately from the main item photo.</span></div><button class="button button-primary button-small add-note" type="button" data-item-id="${item.id}">${icon("plus")} Add note</button></div>
+          ${renderNotes(item, notes)}
+        </section>
       </div>`;
+    }
+
+    function renderNotes(item, notes) {
+      if (!notes) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading item notes</h3></div>`;
+      if (notes.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("image")}<h3>No item notes</h3><p>Add a dated text note, a photo note, or both. Note photos are included in generated PDF reports.</p></div>`;
+      return `<div class="notes-grid">${notes.map((note) => {
+        const hasPhoto = Boolean(note.photoBase64);
+        return `<article class="note-card ${hasPhoto ? "" : "no-photo"}">
+          ${hasPhoto ? `<img class="note-photo" src="${escapeHtml(note.photoBase64)}" alt="Photo attached to item note" />` : ""}
+          <div class="note-body">
+            <div class="note-date">${escapeHtml(formatDateTime(note.noteDate || note.createdAt))}</div>
+            <p class="note-text">${escapeHtml(note.text || "Photo-only note")}</p>
+            <div class="note-actions">
+              <button class="button button-secondary button-small edit-note" type="button" data-item-id="${item.id}" data-note-id="${note.id}">${icon("edit")} Edit</button>
+              <button class="button button-danger button-small delete-note" type="button" data-item-id="${item.id}" data-note-id="${note.id}">${icon("trash")} Delete</button>
+            </div>
+          </div>
+        </article>`;
+      }).join("")}</div>`;
     }
 
     function renderSerialTable(item, serials) {
       if (!serials) return `<div class="empty-state" style="padding:1.6rem"><span class="spinner" aria-hidden="true"></span><h3>Loading serial numbers</h3></div>`;
-      if (serials.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("hash")}<h3>No serial numbers registered</h3><p>Add them one at a time or paste a separated bulk list. One initial location is applied to that entry batch and can later be changed per serial.</p></div>`;
+      if (serials.length === 0) return `<div class="empty-state" style="padding:1.8rem">${icon("hash")}<h3>No serial numbers registered</h3><p>Add them one at a time or paste a separated bulk list. One initial location is applied to that entry batch. Every serial can later be fully edited, including its exact place within the selected sub-location.</p></div>`;
       return `<div class="table-wrap"><table class="serial-table"><thead><tr><th>Serial number</th><th>Current location</th><th>Status</th><th></th></tr></thead><tbody>${serials.map((serial) => {
         const loaned = Boolean(serial.loan?.isLoaned);
         return `<tr>
@@ -1147,7 +1295,7 @@
             <button class="button button-ghost button-small view-logs" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("clock")} Logs</button>
             <button class="button button-secondary button-small move-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" ${loaned ? "disabled title=\"Return before moving\"" : ""}>${icon("move")} Move</button>
             <button class="button ${loaned ? "button-primary" : "button-secondary"} button-small ${loaned ? "return-serial" : "lend-serial"}" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}">${icon("user")} ${loaned ? "Return" : "Lend"}</button>
-            <button class="button button-ghost button-icon button-small rename-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Edit serial">${icon("edit")}</button>
+            <button class="button button-ghost button-icon button-small rename-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Edit complete serial record" title="Edit serial number, location, and status">${icon("edit")}</button>
             <button class="button button-ghost button-icon button-small remove-serial" type="button" data-item-id="${item.id}" data-serial-id="${serial.id}" aria-label="Remove serial">${icon("trash")}</button>
           </div></td>
         </tr>`;
@@ -1159,6 +1307,14 @@
         if (event.target.closest("button, a, input, select, textarea")) return;
         toggleItem(row.dataset.itemId);
       }));
+      $("#selectVisibleItems", elements.inventoryContent)?.addEventListener("change", (event) => {
+        filteredEquipment().forEach((item) => event.target.checked ? state.selectedItems.add(item.id) : state.selectedItems.delete(item.id));
+        renderInventory();
+      });
+      $$(".select-item", elements.inventoryContent).forEach((checkbox) => checkbox.addEventListener("change", () => {
+        checkbox.checked ? state.selectedItems.add(checkbox.dataset.itemId) : state.selectedItems.delete(checkbox.dataset.itemId);
+        renderInventory();
+      }));
       $$(".expand-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => toggleItem(button.dataset.itemId)));
       $$(".edit-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openItemDialog(findItem(button.dataset.itemId))));
       $$(".delete-item", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => requestDeleteItem(findItem(button.dataset.itemId))));
@@ -1169,6 +1325,9 @@
       $$(".return-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openActionDialog("return", button.dataset.itemId, button.dataset.serialId)));
       $$(".rename-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openRenameSerialDialog(button.dataset.itemId, button.dataset.serialId)));
       $$(".remove-serial", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => requestRemoveSerial(button.dataset.itemId, button.dataset.serialId)));
+      $$(".add-note", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openNoteDialog(findItem(button.dataset.itemId))));
+      $$(".edit-note", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => openNoteDialog(findItem(button.dataset.itemId), findNote(button.dataset.itemId, button.dataset.noteId))));
+      $$(".delete-note", elements.inventoryContent).forEach((button) => button.addEventListener("click", () => requestDeleteNote(button.dataset.itemId, button.dataset.noteId)));
     }
 
     function findItem(itemId) {
@@ -1179,6 +1338,16 @@
       return (state.serialsByItem.get(itemId) || []).find((serial) => serial.id === serialId);
     }
 
+    function findNote(itemId, noteId) {
+      return (state.notesByItem.get(itemId) || []).find((note) => note.id === noteId);
+    }
+
+    function updateSelectionSummary() {
+      const count = state.selectedItems.size;
+      elements.selectionCount.textContent = `${count} selected`;
+      elements.selectionCount.classList.toggle("hidden", count === 0);
+    }
+
     function toggleItem(itemId) {
       if (state.expandedItems.has(itemId)) {
         state.expandedItems.delete(itemId);
@@ -1186,9 +1355,14 @@
         if (unsubscribe) unsubscribe();
         state.serialSubscriptions.delete(itemId);
         state.serialsByItem.delete(itemId);
+        const noteUnsubscribe = state.noteSubscriptions.get(itemId);
+        if (noteUnsubscribe) noteUnsubscribe();
+        state.noteSubscriptions.delete(itemId);
+        state.notesByItem.delete(itemId);
       } else {
         state.expandedItems.add(itemId);
         subscribeToItemSerials(itemId);
+        subscribeToItemNotes(itemId);
       }
       renderInventory();
     }
@@ -1206,6 +1380,19 @@
       state.serialSubscriptions.set(itemId, unsubscribe);
     }
 
+    function subscribeToItemNotes(itemId) {
+      if (state.noteSubscriptions.has(itemId)) return;
+      const unsubscribe = subscribeItemNotes(
+        itemId,
+        (notes) => {
+          state.notesByItem.set(itemId, notes);
+          renderInventory();
+        },
+        (error) => toast("Notes could not load", firebaseErrorMessage(error), "error")
+      );
+      state.noteSubscriptions.set(itemId, unsubscribe);
+    }
+
     function logDetail(log) {
       const details = log.details || {};
       switch (log.actionType) {
@@ -1214,7 +1401,21 @@
         case "Lent": return `Lent to ${details.memberName || "member"} from ${formatLocation(details.fromLocation)}`;
         case "Returned": return `Returned by ${details.memberName || "member"} to ${formatLocation(details.toLocation)}`;
         case "Serial renamed": return `${details.previousSerialNumber || "Previous serial"} → ${details.newSerialNumber || log.serialNumber}`;
+        case "Serial modified": {
+          const previous = details.previous || {};
+          const next = details.next || {};
+          const changes = [];
+          if (previous.serialNumber !== next.serialNumber) changes.push(`Serial: ${previous.serialNumber || "—"} → ${next.serialNumber || "—"}`);
+          if (formatLocation(previous.currentLocation) !== formatLocation(next.currentLocation)) changes.push(`Location: ${formatLocation(previous.currentLocation)} → ${formatLocation(next.currentLocation)}`);
+          const previousStatus = previous.loan?.isLoaned ? `Lent to ${previous.loan.memberName || "member"}` : "Available";
+          const nextStatus = next.loan?.isLoaned ? `Lent to ${next.loan.memberName || "member"}` : "Available";
+          if (previousStatus !== nextStatus) changes.push(`Status: ${previousStatus} → ${nextStatus}`);
+          return changes.join(" · ") || "Serial record updated.";
+        }
         case "Removed": return `Removed from inventory. Last location: ${formatLocation(details.fromLocation)}`;
+        case "Note added": return `${details.noteText || "Photo-only note"}${details.hasPhoto ? " · Photo attached" : ""}`;
+        case "Note modified": return `${details.nextText || "Photo-only note"}${details.nextHasPhoto ? " · Photo attached" : ""}`;
+        case "Note removed": return `${details.noteText || "Photo-only note"}${details.hadPhoto ? " · Attached photo removed" : ""}`;
         default: return "Activity recorded.";
       }
     }
@@ -1237,7 +1438,7 @@
 
       elements.activityList.innerHTML = logs.map((log) => `<article class="activity-ticket" data-action="${escapeHtml(log.actionType)}">
         <div class="ticket-top"><span class="ticket-action">${escapeHtml(log.actionType)}</span><time class="ticket-date">${escapeHtml(formatDateTime(log.occurredAt))}</time></div>
-        <div class="ticket-item">${escapeHtml(log.itemName)} · <span class="ticket-serial">${escapeHtml(log.serialNumber)}</span></div>
+        <div class="ticket-item">${escapeHtml(log.itemName)}${log.serialNumber ? ` · <span class="ticket-serial">${escapeHtml(log.serialNumber)}</span>` : " · Item note"}</div>
         <div class="ticket-detail">${escapeHtml(logDetail(log))}</div>
         <div class="ticket-actor">${escapeHtml(log.projectName)} · logged by ${escapeHtml(log.actorEmail || "signed-in user")}</div>
       </article>`).join("");
@@ -1309,6 +1510,34 @@
       return dataUrl;
     }
 
+    function openNoteDialog(item, note = null) {
+      if (!item) return;
+      state.noteContextItem = item;
+      state.noteBeingEdited = note;
+      state.notePhotoBase64 = note?.photoBase64 || "";
+      state.removeCurrentNotePhoto = false;
+      elements.noteForm.reset();
+      elements.noteDialogTitle.textContent = note ? "Edit item note" : "Add item note";
+      elements.noteDialogSubtitle.textContent = `${item.name} · notes may contain text, a photo, or both.`;
+      elements.noteText.value = note?.text || "";
+      elements.noteDate.value = note ? toLocalInputValue(note.noteDate || note.createdAt) : nowLocalInputValue();
+      elements.notePhoto.value = "";
+      elements.saveNoteButton.textContent = note ? "Save note changes" : "Save note";
+      setInlineMessage(elements.noteFormMessage);
+      updateNotePhotoPreview();
+      elements.noteDialog.showModal();
+    }
+
+    function updateNotePhotoPreview() {
+      if (state.notePhotoBase64 && !state.removeCurrentNotePhoto) {
+        elements.notePhotoPreview.innerHTML = `<img src="${escapeHtml(state.notePhotoBase64)}" alt="Selected note photo preview" />`;
+        elements.removeNotePhotoButton.classList.remove("hidden");
+      } else {
+        elements.notePhotoPreview.innerHTML = "<span>No note photo selected</span>";
+        elements.removeNotePhotoButton.classList.add("hidden");
+      }
+    }
+
     function openSerialDialog(item) {
       state.serialContextItem = item;
       state.serialMode = "single";
@@ -1335,6 +1564,12 @@
       return [...new Set(String(value).split(/[\n\r,;|\t]+/g).map((entry) => entry.trim()).filter(Boolean))];
     }
 
+    function refreshSerialEditMemberField() {
+      const loaned = elements.renameSerialStatus.value === "loaned";
+      elements.renameSerialMemberField.classList.toggle("hidden", !loaned);
+      if (!loaned) elements.renameSerialMemberName.value = "";
+    }
+
     function openRenameSerialDialog(itemId, serialId) {
       const item = findItem(itemId);
       const serial = findSerial(itemId, serialId);
@@ -1343,6 +1578,11 @@
       state.serialBeingEdited = serial;
       elements.renameSerialForm.reset();
       elements.renameSerialInput.value = serial.serialNumber;
+      buildLocationFields(elements.renameSerialLocationBuilder, "renameSerialLocation", serial.currentLocation || { site: "EC5", subLocation: "Shared Space" });
+      elements.renameSerialStatus.value = serial.loan?.isLoaned ? "loaned" : "available";
+      elements.renameSerialMemberName.value = serial.loan?.memberName || "";
+      refreshSerialEditMemberField();
+      if (serial.loan?.isLoaned) elements.renameSerialMemberName.value = serial.loan?.memberName || "";
       elements.renameSerialDate.value = nowLocalInputValue();
       setInlineMessage(elements.renameSerialMessage);
       elements.renameSerialDialog.showModal();
@@ -1379,10 +1619,23 @@
       elements.actionDialog.showModal();
     }
 
+    function requestDeleteNote(itemId, noteId) {
+      const item = findItem(itemId);
+      const note = findNote(itemId, noteId);
+      if (!item || !note) return;
+      state.confirmAction = { type: "delete-note", item, note };
+      elements.confirmTitle.textContent = "Delete item note";
+      elements.confirmText.textContent = `Delete this note from “${item.name}”? Its text and attached photo will be removed, and a note-removal ticket will remain in the activity log.`;
+      elements.confirmDateField.classList.add("hidden");
+      elements.confirmButton.textContent = "Delete note";
+      setInlineMessage(elements.confirmMessage);
+      elements.confirmDialog.showModal();
+    }
+
     function requestDeleteItem(item) {
       state.confirmAction = { type: "delete-item", item };
       elements.confirmTitle.textContent = "Delete equipment item";
-      elements.confirmText.textContent = `Delete “${item.name}” and its active serial records? Historical activity tickets will be preserved for audit purposes. This cannot be undone.`;
+      elements.confirmText.textContent = `Delete “${item.name}”, its active serial records, and its item notes with attached photos? Historical activity tickets will be preserved for audit purposes. This cannot be undone.`;
       elements.confirmDateField.classList.add("hidden");
       elements.confirmButton.textContent = "Delete item";
       setInlineMessage(elements.confirmMessage);
@@ -1401,6 +1654,226 @@
       elements.confirmButton.textContent = "Remove serial";
       setInlineMessage(elements.confirmMessage);
       elements.confirmDialog.showModal();
+    }
+
+    function openPdfDialog() {
+      setInlineMessage(elements.pdfFormMessage);
+      if (state.selectedItems.size > 0) {
+        elements.pdfScope.value = "selection";
+      } else if (elements.projectFilter.value) {
+        elements.pdfScope.value = "project";
+        elements.pdfProject.value = elements.projectFilter.value;
+      } else if (elements.typeFilter.value) {
+        elements.pdfScope.value = "category";
+        elements.pdfCategory.value = elements.typeFilter.value;
+      } else {
+        elements.pdfScope.value = "project";
+        elements.pdfProject.value = "Apple";
+      }
+      refreshPdfScope();
+      elements.pdfDialog.showModal();
+    }
+
+    function pdfScopeItems() {
+      if (elements.pdfScope.value === "selection") {
+        return state.equipment.filter((item) => state.selectedItems.has(item.id));
+      }
+      if (elements.pdfScope.value === "project") {
+        return state.equipment.filter((item) => item.projectName === elements.pdfProject.value);
+      }
+      return state.equipment.filter((item) => item.itemType === elements.pdfCategory.value);
+    }
+
+    function refreshPdfScope() {
+      const scope = elements.pdfScope.value;
+      elements.pdfProjectField.classList.toggle("hidden", scope !== "project");
+      elements.pdfCategoryField.classList.toggle("hidden", scope !== "category");
+      const items = pdfScopeItems();
+      const description = scope === "selection"
+        ? `${items.length} manually selected item${items.length === 1 ? "" : "s"}`
+        : scope === "project"
+          ? `${items.length} item${items.length === 1 ? "" : "s"} in project ${elements.pdfProject.value}`
+          : `${items.length} item${items.length === 1 ? "" : "s"} in category ${elements.pdfCategory.value}`;
+      elements.pdfSummary.textContent = `${description}. The PDF contains an overview table with item photos, followed by serial-number tables and dated item-note tables with note photos.`;
+    }
+
+    function pdfImageFormat(dataUrl) {
+      if (/^data:image\/png/i.test(dataUrl)) return "PNG";
+      if (/^data:image\/webp/i.test(dataUrl)) return "WEBP";
+      return "JPEG";
+    }
+
+    function addPdfImage(doc, dataUrl, x, y, width, height) {
+      if (!dataUrl) return;
+      try {
+        doc.addImage(dataUrl, pdfImageFormat(dataUrl), x, y, width, height, undefined, "FAST");
+      } catch (error) {
+        console.warn("Could not add an image to the PDF:", error);
+      }
+    }
+
+    function safePdfFilePart(value) {
+      return String(value || "inventory").replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 70) || "inventory";
+    }
+
+    function generateInventoryPdf(items, scopeLabel) {
+      const JsPdf = window.jspdf?.jsPDF;
+      if (!JsPdf) throw new Error("The PDF library did not load. Refresh the page and try again.");
+      const doc = new JsPdf({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+      if (typeof doc.autoTable !== "function") throw new Error("The PDF table library did not load. Refresh the page and try again.");
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 12;
+      doc.setTextColor(8, 24, 32);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("Lab Equipment Inventory Report", margin, 15);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(66, 108, 119);
+      doc.text(`Scope: ${scopeLabel}`, margin, 22);
+      doc.text(`Generated: ${formatDateTime(Date.now())}`, margin, 27);
+
+      const overviewRows = items.map((item) => ({
+        photo: "",
+        project: item.projectName || "",
+        category: item.itemType || "",
+        item: item.name || "",
+        quantity: String(item.quantity || 0),
+        serials: String(item.serials?.length || 0),
+        notes: String(item.notes?.length || 0),
+        comment: item.comment || "",
+        itemPhoto: item.photoBase64 || "",
+      }));
+
+      doc.autoTable({
+        startY: 32,
+        columns: [
+          { header: "Photo", dataKey: "photo" },
+          { header: "Project", dataKey: "project" },
+          { header: "Category", dataKey: "category" },
+          { header: "Item", dataKey: "item" },
+          { header: "Qty", dataKey: "quantity" },
+          { header: "Serials", dataKey: "serials" },
+          { header: "Notes", dataKey: "notes" },
+          { header: "Item comment", dataKey: "comment" },
+        ],
+        body: overviewRows,
+        theme: "grid",
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 7.5, cellPadding: 2, valign: "middle", overflow: "linebreak" },
+        headStyles: { fillColor: [0, 111, 115], textColor: 255, fontStyle: "bold" },
+        columnStyles: {
+          photo: { cellWidth: 23, minCellHeight: 20 },
+          project: { cellWidth: 20 },
+          category: { cellWidth: 21 },
+          item: { cellWidth: 40 },
+          quantity: { cellWidth: 12, halign: "center" },
+          serials: { cellWidth: 14, halign: "center" },
+          notes: { cellWidth: 12, halign: "center" },
+          comment: { cellWidth: "auto" },
+        },
+        didParseCell(data) {
+          if (data.section === "body" && data.column.dataKey === "photo") data.cell.styles.minCellHeight = 20;
+        },
+        didDrawCell(data) {
+          if (data.section === "body" && data.column.dataKey === "photo") {
+            const image = data.row.raw.itemPhoto;
+            if (image) addPdfImage(doc, image, data.cell.x + 1.5, data.cell.y + 1.5, data.cell.width - 3, data.cell.height - 3);
+          }
+        },
+      });
+
+      items.forEach((item, itemIndex) => {
+        doc.addPage();
+        let y = 15;
+        doc.setTextColor(8, 24, 32);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.text(`${itemIndex + 1}. ${item.name}`, margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(66, 108, 119);
+        doc.text(`${item.projectName} · ${item.itemType} · Quantity ${item.quantity || 0}`, margin, y + 6);
+        const commentLines = doc.splitTextToSize(item.comment || "No item comment.", pageWidth - margin * 2 - 48);
+        doc.setTextColor(40, 82, 96);
+        doc.text(commentLines, margin, y + 13);
+        if (item.photoBase64) addPdfImage(doc, item.photoBase64, pageWidth - margin - 42, y - 2, 42, 30);
+        y = Math.max(y + 18 + commentLines.length * 4, 48);
+
+        const serialRows = (item.serials || []).map((serial) => ({
+          serial: serial.serialNumber || "",
+          location: formatLocation(serial.currentLocation),
+          status: serial.loan?.isLoaned ? "Lent" : "Available",
+          member: serial.loan?.memberName || "",
+        }));
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(8, 24, 32);
+        doc.text("Serial numbers", margin, y);
+        doc.autoTable({
+          startY: y + 3,
+          columns: [
+            { header: "Serial number", dataKey: "serial" },
+            { header: "Current location", dataKey: "location" },
+            { header: "Status", dataKey: "status" },
+            { header: "Member", dataKey: "member" },
+          ],
+          body: serialRows.length ? serialRows : [{ serial: "No serials registered", location: "", status: "", member: "" }],
+          theme: "grid",
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 7.5, cellPadding: 2, overflow: "linebreak" },
+          headStyles: { fillColor: [23, 57, 70], textColor: 255 },
+          columnStyles: { serial: { cellWidth: 45 }, location: { cellWidth: 120 }, status: { cellWidth: 28 }, member: { cellWidth: "auto" } },
+        });
+        y = doc.lastAutoTable.finalY + 9;
+        if (y > pageHeight - 45) { doc.addPage(); y = 15; }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(8, 24, 32);
+        doc.text("Item notes", margin, y);
+        const noteRows = (item.notes || []).map((note) => ({
+          photo: "",
+          date: formatDateTime(note.noteDate || note.createdAt),
+          note: note.text || "Photo-only note",
+          notePhoto: note.photoBase64 || "",
+        }));
+        doc.autoTable({
+          startY: y + 3,
+          columns: [
+            { header: "Photo", dataKey: "photo" },
+            { header: "Date", dataKey: "date" },
+            { header: "Note", dataKey: "note" },
+          ],
+          body: noteRows.length ? noteRows : [{ photo: "", date: "", note: "No item notes", notePhoto: "" }],
+          theme: "grid",
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 7.5, cellPadding: 2, valign: "middle", overflow: "linebreak" },
+          headStyles: { fillColor: [0, 139, 139], textColor: 255 },
+          columnStyles: { photo: { cellWidth: 30, minCellHeight: 25 }, date: { cellWidth: 42 }, note: { cellWidth: "auto" } },
+          didParseCell(data) {
+            if (data.section === "body" && data.column.dataKey === "photo" && data.row.raw.notePhoto) data.cell.styles.minCellHeight = 25;
+          },
+          didDrawCell(data) {
+            if (data.section === "body" && data.column.dataKey === "photo") {
+              const image = data.row.raw.notePhoto;
+              if (image) addPdfImage(doc, image, data.cell.x + 1.5, data.cell.y + 1.5, data.cell.width - 3, data.cell.height - 3);
+            }
+          },
+        });
+      });
+
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let page = 1; page <= totalPages; page += 1) {
+        doc.setPage(page);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(100, 120, 126);
+        doc.text(`Page ${page} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: "right" });
+      }
+      doc.save(`lab-equipment-${safePdfFilePart(scopeLabel)}-${new Date().toISOString().slice(0, 10)}.pdf`);
     }
 
     function downloadCsv(rows) {
@@ -1424,7 +1897,22 @@
       state.equipmentUnsubscribe?.();
       state.logsUnsubscribe?.();
       state.equipmentUnsubscribe = subscribeEquipment(
-        (items) => { state.equipment = items; renderInventory(); },
+        (items) => {
+          state.equipment = items;
+          const validIds = new Set(items.map((item) => item.id));
+          [...state.selectedItems].forEach((id) => { if (!validIds.has(id)) state.selectedItems.delete(id); });
+          [...state.expandedItems].forEach((id) => {
+            if (validIds.has(id)) return;
+            state.expandedItems.delete(id);
+            state.serialSubscriptions.get(id)?.();
+            state.noteSubscriptions.get(id)?.();
+            state.serialSubscriptions.delete(id);
+            state.noteSubscriptions.delete(id);
+            state.serialsByItem.delete(id);
+            state.notesByItem.delete(id);
+          });
+          renderInventory();
+        },
         (error) => toast("Inventory could not load", firebaseErrorMessage(error), "error")
       );
       state.logsUnsubscribe = subscribeActivityLogs(
@@ -1437,11 +1925,15 @@
       state.equipmentUnsubscribe?.();
       state.logsUnsubscribe?.();
       state.serialSubscriptions.forEach((unsubscribe) => unsubscribe());
+      state.noteSubscriptions.forEach((unsubscribe) => unsubscribe());
       state.equipmentUnsubscribe = null;
       state.logsUnsubscribe = null;
       state.serialSubscriptions.clear();
       state.serialsByItem.clear();
+      state.noteSubscriptions.clear();
+      state.notesByItem.clear();
       state.expandedItems.clear();
+      state.selectedItems.clear();
       state.equipment = [];
       state.logs = [];
       state.selectedLogFilter = null;
@@ -1479,6 +1971,7 @@
     });
 
     elements.addItemButton.addEventListener("click", () => openItemDialog());
+    elements.pdfButton.addEventListener("click", openPdfDialog);
     elements.searchInput.addEventListener("input", renderInventory);
     elements.projectFilter.addEventListener("change", renderInventory);
     elements.typeFilter.addEventListener("change", renderInventory);
@@ -1504,6 +1997,55 @@
       state.removeCurrentPhoto = true;
       elements.itemPhoto.value = "";
       updatePhotoPreview();
+    });
+
+    elements.notePhoto.addEventListener("change", async () => {
+      const file = elements.notePhoto.files?.[0];
+      if (!file) return;
+      setInlineMessage(elements.noteFormMessage, "Compressing note photo…", "info");
+      try {
+        state.notePhotoBase64 = await compressImage(file);
+        state.removeCurrentNotePhoto = false;
+        updateNotePhotoPreview();
+        setInlineMessage(elements.noteFormMessage);
+      } catch (error) {
+        elements.notePhoto.value = "";
+        setInlineMessage(elements.noteFormMessage, firebaseErrorMessage(error), "error");
+      }
+    });
+
+    elements.removeNotePhotoButton.addEventListener("click", () => {
+      state.notePhotoBase64 = "";
+      state.removeCurrentNotePhoto = true;
+      elements.notePhoto.value = "";
+      updateNotePhotoPreview();
+    });
+
+    elements.noteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const item = state.noteContextItem;
+      if (!item) return;
+      const payload = {
+        text: elements.noteText.value,
+        photoBase64: state.notePhotoBase64,
+        noteDate: new Date(elements.noteDate.value),
+      };
+      elements.saveNoteButton.disabled = true;
+      setInlineMessage(elements.noteFormMessage);
+      try {
+        if (state.noteBeingEdited) {
+          const changed = await updateItemNote(item, state.noteBeingEdited, payload, state.user);
+          toast("Note saved", changed ? "The note text, photo, or date was updated." : "No note changes were required.");
+        } else {
+          await createItemNote(item, payload, state.user);
+          toast("Note added", `A dated note was added to ${item.name}.`);
+        }
+        elements.noteDialog.close();
+      } catch (error) {
+        setInlineMessage(elements.noteFormMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        elements.saveNoteButton.disabled = false;
+      }
     });
 
     elements.itemForm.addEventListener("submit", async (event) => {
@@ -1558,12 +2100,27 @@
       }
     });
 
+    elements.renameSerialStatus.addEventListener("change", refreshSerialEditMemberField);
+
     elements.renameSerialForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       setInlineMessage(elements.renameSerialMessage);
       try {
-        await renameSerialNumber(state.serialContextItem, state.serialBeingEdited, elements.renameSerialInput.value, new Date(elements.renameSerialDate.value), state.user);
-        toast("Serial updated", "The serial number and its history were updated.");
+        const changed = await updateSerialRecord(
+          state.serialContextItem,
+          state.serialBeingEdited,
+          {
+            serialNumber: elements.renameSerialInput.value,
+            currentLocation: readLocation(elements.renameSerialLocationBuilder, "renameSerialLocation"),
+            loan: {
+              isLoaned: elements.renameSerialStatus.value === "loaned",
+              memberName: elements.renameSerialMemberName.value,
+            },
+          },
+          new Date(elements.renameSerialDate.value),
+          state.user
+        );
+        toast("Serial record saved", changed ? "The serial number, location, and status were updated and logged." : "No changes were required.");
         if (state.selectedLogFilter?.serialId === state.serialBeingEdited.id) state.selectedLogFilter.serialNumber = elements.renameSerialInput.value.trim();
         elements.renameSerialDialog.close();
       } catch (error) {
@@ -1604,9 +2161,13 @@
       setInlineMessage(elements.confirmMessage);
       try {
         if (action.type === "delete-item") {
-          setLoading(true, "Deleting item and related records…");
+          setLoading(true, "Deleting item, serials, and notes…");
           await deleteEquipmentRecord(action.item.id);
-          toast("Item deleted", `${action.item.name} and its active serial records were deleted. Historical activity logs were preserved.`);
+          state.selectedItems.delete(action.item.id);
+          toast("Item deleted", `${action.item.name}, its active serial records, and its item notes were deleted. Historical activity logs were preserved.`);
+        } else if (action.type === "delete-note") {
+          await deleteItemNote(action.item, action.note, state.user);
+          toast("Note deleted", `The note and its attached photo were removed from ${action.item.name}.`);
         } else {
           await removeSerialNumber(action.item, action.serial, new Date(elements.confirmDate.value), state.user);
           toast("Serial removed", `${action.serial.serialNumber} was removed and logged.`);
@@ -1618,6 +2179,38 @@
       } finally {
         setLoading(false);
         elements.confirmButton.disabled = false;
+      }
+    });
+
+    elements.pdfScope.addEventListener("change", refreshPdfScope);
+    elements.pdfProject.addEventListener("change", refreshPdfScope);
+    elements.pdfCategory.addEventListener("change", refreshPdfScope);
+
+    elements.pdfForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const scopedItems = pdfScopeItems();
+      if (scopedItems.length === 0) {
+        setInlineMessage(elements.pdfFormMessage, "No items match the selected PDF basis.", "error");
+        return;
+      }
+      elements.generatePdfButton.disabled = true;
+      setInlineMessage(elements.pdfFormMessage);
+      setLoading(true, "Loading photos, notes, and serials for the PDF…");
+      try {
+        const data = await getInventoryReportData(scopedItems.map((item) => item.id));
+        const scopeLabel = elements.pdfScope.value === "selection"
+          ? `selected-${data.length}-items`
+          : elements.pdfScope.value === "project"
+            ? `project-${elements.pdfProject.value}`
+            : `category-${elements.pdfCategory.value}`;
+        generateInventoryPdf(data, scopeLabel);
+        elements.pdfDialog.close();
+        toast("PDF generated", `${data.length} item${data.length === 1 ? " was" : "s were"} included with item and note photos.`);
+      } catch (error) {
+        setInlineMessage(elements.pdfFormMessage, firebaseErrorMessage(error), "error");
+      } finally {
+        setLoading(false);
+        elements.generatePdfButton.disabled = false;
       }
     });
 
