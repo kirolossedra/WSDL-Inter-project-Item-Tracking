@@ -68,7 +68,7 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Could not enable persistent Firebase login:", error);
 });
 
-const PROJECTS = Object.freeze(["Apple", "AQS", "Rogers"]);
+const PROJECTS = Object.freeze(["Apple", "AQS", "Rogers", "Generic"]);
 const ITEM_TYPES = Object.freeze(["Device", "Component"]);
 const SITES = Object.freeze({
   EC5: ["Shared Space", "Cage-Chamber Space"],
